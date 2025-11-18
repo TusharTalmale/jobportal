@@ -1,6 +1,6 @@
 class AppRoutes {
   static const String main = '/main';
-    static const String network = '/network';
+  static const String network = '/network';
   static const String findJob = '/find-job';
   static const String inbox = '/inbox';
   static const String savedJobs = '/saved-jobs';
@@ -10,6 +10,7 @@ class AppRoutes {
   static const String signup = '/signup';
   static const String otp = '/otp';
   static const String home = '/home';
+  static const String chatList = '/chat';
   static const String jobDetail = '/jobdetail';
   static const String apply = '/apply';
   static const String companyDetails = '/company-details';
@@ -22,9 +23,4 @@ class AppRoutes {
   static const String languages = '/profile/languages';
   static const String resume = '/profile/resume';
   static const String appreciation = '/profile/appreciation';
-
-
-
-
-
 }

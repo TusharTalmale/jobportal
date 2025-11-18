@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/user_profile.dart';
+import 'package:jobportal/services/local_storage_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
+  final LocalStorageService _storageService = LocalStorageService();
+
   UserProfile _profile = MockProfileData.getMockUserProfile();
   bool _isLoading = false;
   String? _errorMessage;
@@ -10,6 +13,36 @@ class ProfileProvider extends ChangeNotifier {
   UserProfile? get userProfile => _profile;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  /// Initialize profile from local storage
+  Future<void> initializeFromStorage() async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final userData = _storageService.getUserData();
+      if (userData != null) {
+        _profile = UserProfile.fromJson(userData);
+      }
+
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Error loading profile: $e';
+      print('Error loading profile from storage: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Save profile to local storage
+  Future<void> _saveProfileToStorage() async {
+    try {
+      await _storageService.saveUserData(_profile.toJson());
+    } catch (e) {
+      print('Error saving profile to storage: $e');
+    }
+  }
 
   WorkExperience? getWorkExperienceForEdit(int? index) {
     if (index != null &&
@@ -84,12 +117,14 @@ class ProfileProvider extends ChangeNotifier {
 
   void saveAboutMe() {
     _profile = _profile.copyWith(aboutMe: _editingAboutMe);
+    _saveProfileToStorage();
     notifyListeners();
   }
 
   void saveBasicInfo() {
     if (_editingBasicInfo == null) return;
     _profile = _editingBasicInfo!;
+    _saveProfileToStorage();
     notifyListeners();
   }
 
@@ -97,6 +132,7 @@ class ProfileProvider extends ChangeNotifier {
     _profile = _profile.copyWith(
       workExperiences: [..._profile.workExperiences, experience],
     );
+    _saveProfileToStorage();
     notifyListeners();
   }
 
@@ -104,6 +140,7 @@ class ProfileProvider extends ChangeNotifier {
     final updatedList = List<WorkExperience>.from(_profile.workExperiences);
     updatedList[index] = experience;
     _profile = _profile.copyWith(workExperiences: updatedList);
+    _saveProfileToStorage();
     notifyListeners();
   }
 
@@ -111,6 +148,7 @@ class ProfileProvider extends ChangeNotifier {
     final updatedList = List<WorkExperience>.from(_profile.workExperiences);
     updatedList.removeAt(index);
     _profile = _profile.copyWith(workExperiences: updatedList);
+    _saveProfileToStorage();
     notifyListeners();
   }
 

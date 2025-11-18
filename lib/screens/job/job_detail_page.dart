@@ -130,8 +130,12 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.business, size: 80, color: Colors.grey),
+                errorBuilder:
+                    (context, error, stackTrace) => const Icon(
+                      Icons.business,
+                      size: 80,
+                      color: Colors.grey,
+                    ),
               ),
             )
           else
@@ -248,18 +252,15 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         children: [
           _buildInfoTab('Salary', job.salary, Icons.money_outlined),
           _buildInfoTab('Job Type', job.jobType, Icons.work_outline),
-          _buildInfoTab(
-            'Position',
-            job.position,
-            Icons.person_outline,
-          ),
+          _buildInfoTab('Position', job.position, Icons.person_outline),
         ],
       ),
     );
   }
 
   Widget _buildInfoTab(String label, String? value, IconData icon) {
-    if (value == null || value.isEmpty) return const Expanded(child: SizedBox());
+    if (value == null || value.isEmpty)
+      return const Expanded(child: SizedBox());
     return Expanded(
       child: Card(
         elevation: 2,
@@ -337,11 +338,16 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget _buildRequirements(Job job) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: job.requirements != null && job.requirements!.isNotEmpty
-          ? Column(
-              children: (job.requirements ?? '').split('\n').map((req) => _buildRequirementItem(req)).toList(),
-            )
-          : const Text("No requirements specified."),
+      child:
+          job.requirements != null && job.requirements!.isNotEmpty
+              ? Column(
+                children:
+                    (job.requirements ?? '')
+                        .split('\n')
+                        .map((req) => _buildRequirementItem(req))
+                        .toList(),
+              )
+              : const Text("No requirements specified."),
     );
   }
 
@@ -434,7 +440,8 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
 
   Widget _buildInfoRow(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
-    return Padding( // This was missing a null check
+    return Padding(
+      // This was missing a null check
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -459,11 +466,16 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget _buildFacilities(Job job) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: job.facilities != null && job.facilities!.isNotEmpty
-          ? Column(
-              children: (job.facilities ?? '').split('\n').map((facility) => _buildRequirementItem(facility)).toList(),
-            )
-          : const Text("No facilities listed."),
+      child:
+          job.facilities != null && job.facilities!.isNotEmpty
+              ? Column(
+                children:
+                    (job.facilities ?? '')
+                        .split('\n')
+                        .map((facility) => _buildRequirementItem(facility))
+                        .toList(),
+              )
+              : const Text("No facilities listed."),
     );
   }
 
@@ -477,8 +489,10 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle('About Company'),
-          Text( // Null check
-            company?.aboutCompany ?? 'No information available about the company.',
+          Text(
+            // Null check
+            company?.aboutCompany ??
+                'No information available about the company.',
             style: TextStyle(
               fontSize: 15,
               color: Colors.grey[800],
@@ -607,21 +621,23 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             const SizedBox(width: 12),
             // Chat button
             OutlinedButton(
-              onPressed: () {
-                final conversation = chatProvider.findOrCreateConversation(
-                  job.company!, // Assuming company is always present
+              onPressed: () async {
+                final conversation = await chatProvider.startConversation(
+                  job.company!.id, // Use company ID
                 );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => ChattingScreen(
-                          conversation: conversation,
-                          chatProvider: chatProvider,
-                          initialJob: job,
-                        ),
-                  ),
-                );
+                if (mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ChattingScreen(
+                            conversation: conversation,
+                            chatProvider: chatProvider,
+                            initialJob: job,
+                          ),
+                    ),
+                  );
+                }
               },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(

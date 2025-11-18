@@ -1,28 +1,52 @@
 import 'package:jobportal/model.dart/job.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'message.g.dart';
 
 enum MessageSender { user, company }
+
 enum MessageType { text, file, job }
 
+@JsonSerializable(explicitToJson: true)
 class Message {
-  final String id;
-  final MessageSender sender;
-  final MessageType type;
-  final String? text; // Nullable for file/job messages
-  final DateTime timestamp;
-  final String? repliedToMessageId; // ID of the message this one is replying to
+  final int id;
+  final String conversationId;
+  final int senderId;
+  final MessageSender senderType;
+  final MessageType messageType;
+  final String? text;
+  final int? repliedToMessageId;
   final String? fileUrl; // For file messages
   final String? fileName; // For file messages
-  final Job? jobData; // For job sharing messages
+  final int? jobId; // For job sharing messages
+  final DateTime? readAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  @JsonKey(name: 'Job')
+  final Job? jobData;
+  @JsonKey(name: 'RepliedTo')
+  final Message? repliedTo;
 
   Message({
     required this.id,
-    required this.sender,
-    this.type = MessageType.text,
+    required this.conversationId,
+    required this.senderId,
+    required this.senderType,
+    required this.messageType,
     this.text,
-    required this.timestamp,
     this.repliedToMessageId,
     this.fileUrl,
     this.fileName,
+    this.jobId,
+    this.readAt,
+    required this.createdAt,
+    required this.updatedAt,
     this.jobData,
+    this.repliedTo,
   });
+
+  factory Message.fromJson(Map<String, dynamic> json) =>
+      _$MessageFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MessageToJson(this);
 }

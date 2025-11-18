@@ -63,13 +63,13 @@ class SignupScreen extends StatelessWidget {
                         ),
                         const Text('Remember me'),
                         const Spacer(),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'Forgot Password ?',
-                            style: TextStyle(color: Colors.black54),
-                          ),
-                        ),
+                        // TextButton(
+                        //   onPressed: () {},
+                        //   child: const Text(
+                        //     'Forgot Password ?',
+                        //     style: TextStyle(color: Colors.black54),
+                        //   ),
+                        // ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -86,7 +86,7 @@ class SignupScreen extends StatelessWidget {
                         onPressed:
                             authViewModel.isLoading
                                 ? null
-                                : () => authViewModel.signup(context),
+                                : () => authViewModel.sendSignupOtp(context),
                         child:
                             authViewModel.isLoading
                                 ? const CircularProgressIndicator(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/company.dart';
-import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/provider/network_provider.dart';
 import 'package:jobportal/utils/app_routes.dart';
 

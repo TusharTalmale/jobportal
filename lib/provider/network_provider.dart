@@ -6,10 +6,12 @@ import 'package:jobportal/api/post_api_service.dart';
 import 'package:jobportal/model.dart/comment.dart';
 import 'package:jobportal/model.dart/company_post.dart';
 import 'package:jobportal/provider/api_client.dart';
+import 'package:jobportal/services/local_storage_service.dart';
 
 class NetworkProvider with ChangeNotifier {
   // --- API Service ---
   final PostApiService _postApiService = ApiClient().postApiService;
+  final LocalStorageService _storageService = LocalStorageService();
 
   // --- State ---
   final Set<int> _following = {};
@@ -33,12 +35,25 @@ class NetworkProvider with ChangeNotifier {
   CompanyPost? _currentPost;
   bool _isPostDetailLoading = false;
 
-  // Placeholder for the logged-in user
-  // UserProfile? currentUser;
+  // Authenticated user info
+  int? _currentUserId;
+  String _userType = 'user';
 
   // --- Constructor ---
   NetworkProvider() {
-    fetchPosts();
+    _loadUserDataAndFetchPosts();
+  }
+
+  /// Load user data from storage and fetch posts
+  Future<void> _loadUserDataAndFetchPosts() async {
+    try {
+      _currentUserId = _storageService.getUserId();
+      _userType = _storageService.getUserType() ?? 'user';
+      await fetchPosts();
+    } catch (e) {
+      print('Error loading user data: $e');
+      await fetchPosts();
+    }
   }
 
   // --- Getters ---
@@ -50,6 +65,8 @@ class NetworkProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get canLoadMorePosts => _currentPage < _totalPages;
+  int? get currentUserId => _currentUserId;
+  String get userType => _userType;
 
   // Getters for company-specific posts
   List<CompanyPost> getPostsForCompany(int companyId) =>
@@ -122,10 +139,9 @@ class NetworkProvider with ChangeNotifier {
       _companyPosts[companyId]!.addAll(response.posts);
       _companyPostsTotalPages[companyId] = response.totalPages;
       _companyPostsCurrentPage[companyId] = page + 1;
-    } on DioException catch (e) {
-      // Handle error, maybe set a specific error message for this company's feed
     } catch (e) {
-      // Handle other errors
+      // Handle error
+      print('Error fetching company posts: $e');
     } finally {
       _companyPostsLoading[companyId] = false;
       notifyListeners();
@@ -134,17 +150,15 @@ class NetworkProvider with ChangeNotifier {
 
   Future<void> fetchPostById(int postId) async {
     _isPostDetailLoading = true;
-    _currentPost = null; // Clear previous post
+    _currentPost = null;
     notifyListeners();
 
     try {
       final post = await _postApiService.getPostById(postId);
       _currentPost = post;
-    } on DioException catch (e) {
-      // Handle error
-      _errorMessage = 'Failed to load post details.';
     } catch (e) {
-      _errorMessage = 'An unknown error occurred.';
+      _errorMessage = 'Failed to load post details.';
+      print('Error loading post details: $e');
     } finally {
       _isPostDetailLoading = false;
       notifyListeners();
@@ -200,10 +214,12 @@ class NetworkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final dynamic response =
-          await _postApiService.togglePostLike(postId, {'userId': userId});
+      final dynamic response = await _postApiService.togglePostLike(postId, {
+        'userId': userId,
+      });
       // Sync with the exact count from the backend response
-      if (response is Map<String, dynamic> && response.containsKey('likesCount')) {
+      if (response is Map<String, dynamic> &&
+          response.containsKey('likesCount')) {
         post.likesCount = response['likesCount'];
         notifyListeners();
       }
@@ -298,10 +314,7 @@ class NetworkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _postApiService.toggleCommentLike(
-        commentId,
-        {'userId': userId},
-      );
+      await _postApiService.toggleCommentLike(commentId, {'userId': userId});
     } catch (e) {
       // Revert on failure
       if (isLiked) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/company_post.dart';
 import 'package:jobportal/widgets/comments_bottom_sheet.dart';
-import 'package:jobportal/utils/app_routes.dart';
 import 'package:jobportal/provider/network_provider.dart';
 import 'package:jobportal/utils/date_formatter.dart';
 import 'package:provider/provider.dart';

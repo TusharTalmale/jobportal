@@ -14,6 +14,7 @@ class UserProfile {
   String gender;
   String? dateOfBirth;
   String aboutMe;
+  String userType;
   List<WorkExperience> workExperiences;
   List<Education> educations;
   List<Language> languages;
@@ -34,6 +35,7 @@ class UserProfile {
     this.gender = 'male',
     this.dateOfBirth,
     this.aboutMe = '',
+    this.userType = 'user',
     this.workExperiences = const [],
     this.educations = const [],
     this.languages = const [],
@@ -60,6 +62,7 @@ class UserProfile {
     String? gender,
     String? dateOfBirth,
     String? aboutMe,
+    String? userType,
     List<WorkExperience>? workExperiences,
     List<Education>? educations,
     List<Language>? languages,
@@ -80,6 +83,7 @@ class UserProfile {
       gender: gender ?? this.gender,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       aboutMe: aboutMe ?? this.aboutMe,
+      userType: userType ?? this.userType,
       workExperiences: workExperiences ?? this.workExperiences,
       educations: educations ?? this.educations,
       languages: languages ?? this.languages,

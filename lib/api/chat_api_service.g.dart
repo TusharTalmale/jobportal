@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'company_api_service.dart';
+part of 'chat_api_service.dart';
 
 // **************************************************************************
 // RetrofitGenerator
@@ -8,8 +8,8 @@ part of 'company_api_service.dart';
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations,unused_element_parameter
 
-class _CompanyApiService implements CompanyApiService {
-  _CompanyApiService(this._dio, {this.baseUrl, this.errorLogger}) {
+class _ChatApiService implements ChatApiService {
+  _ChatApiService(this._dio, {this.baseUrl, this.errorLogger}) {
     baseUrl ??= 'http://10.98.73.250:3000';
   }
 
@@ -20,27 +20,57 @@ class _CompanyApiService implements CompanyApiService {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<List<Company>> getAllCompanies() async {
+  Future<Conversation> findOrCreateConversation(Map<String, int> body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<Conversation>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/chat',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late Conversation _value;
+    try {
+      _value = Conversation.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<List<Conversation>> getUserConversations({required int userId}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'userId': userId};
+    final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<List<Company>>(
+    final _options = _setStreamType<List<Conversation>>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/company',
+            '/api/chat',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<List<dynamic>>(_options);
-    late List<Company> _value;
+    late List<Conversation> _value;
     try {
       _value =
           _result.data!
-              .map((dynamic i) => Company.fromJson(i as Map<String, dynamic>))
+              .map(
+                (dynamic i) => Conversation.fromJson(i as Map<String, dynamic>),
+              )
               .toList();
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
@@ -50,25 +80,29 @@ class _CompanyApiService implements CompanyApiService {
   }
 
   @override
-  Future<Company> getCompanyById(int id) async {
+  Future<PaginatedMessages> getMessagesForConversation({
+    required String conversationId,
+    int page = 1,
+    int limit = 20,
+  }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'page': page, r'limit': limit};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Company>(
+    final _options = _setStreamType<PaginatedMessages>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/company/${id}',
+            '/api/chat/${conversationId}/messages',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Company _value;
+    late PaginatedMessages _value;
     try {
-      _value = Company.fromJson(_result.data!);
+      _value = PaginatedMessages.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
@@ -77,44 +111,29 @@ class _CompanyApiService implements CompanyApiService {
   }
 
   @override
-  Future<Company> createCompany(
-    Map<String, dynamic> data, {
-    List<MultipartFile>? companyLogo,
-    List<MultipartFile>? companyGallery,
+  Future<Message> sendMessage({
+    required String conversationId,
+    required Map<String, dynamic> messagePayload,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
-    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
-    if (companyLogo != null) {
-      _data.files.addAll(companyLogo.map((i) => MapEntry('companyLogo', i)));
-    }
-    if (companyGallery != null) {
-      _data.files.addAll(
-        companyGallery.map((i) => MapEntry('company_gallery', i)),
-      );
-    }
-    final _options = _setStreamType<Company>(
-      Options(
-            method: 'POST',
-            headers: _headers,
-            extra: _extra,
-            contentType: 'multipart/form-data',
-          )
+    final _data = <String, dynamic>{};
+    _data.addAll(messagePayload);
+    final _options = _setStreamType<Message>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/company',
+            '/api/chat/${conversationId}/messages',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Company _value;
+    late Message _value;
     try {
-      _value = Company.fromJson(_result.data!);
+      _value = Message.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
@@ -123,69 +142,39 @@ class _CompanyApiService implements CompanyApiService {
   }
 
   @override
-  Future<Company> updateCompany(
-    int id,
-    Map<String, dynamic> data, {
-    List<MultipartFile>? companyLogo,
-    List<MultipartFile>? companyGallery,
+  Future<Map<String, dynamic>> markAsRead({
+    required String conversationId,
+    required Map<String, dynamic> body,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
-    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
-    if (companyLogo != null) {
-      _data.files.addAll(companyLogo.map((i) => MapEntry('companyLogo', i)));
-    }
-    if (companyGallery != null) {
-      _data.files.addAll(
-        companyGallery.map((i) => MapEntry('company_gallery', i)),
-      );
-    }
-    final _options = _setStreamType<Company>(
-      Options(
-            method: 'PUT',
-            headers: _headers,
-            extra: _extra,
-            contentType: 'multipart/form-data',
-          )
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<Map<String, dynamic>>(
+      Options(method: 'PATCH', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/company/${id}',
+            '/api/chat/${conversationId}/messages/read',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Company _value;
+    late Map<String, dynamic> _value;
     try {
-      _value = Company.fromJson(_result.data!);
+      //ignore this code generation issue
+      // _value = _result.data!.map(
+      //   (k, dynamic v) =>
+      //       MapEntry(k, dynamic.fromJson(v as Map<String, dynamic>)),
+      // );
+      _value = _result.data!;
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
     }
     return _value;
-  }
-
-  @override
-  Future<void> deleteCompany(int id) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
-    final _headers = <String, dynamic>{};
-    const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<void>(
-      Options(method: 'DELETE', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/company/${id}',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
-    await _dio.fetch<void>(_options);
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

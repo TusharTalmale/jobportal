@@ -32,7 +32,17 @@ class JobPortalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => JobProvider()),
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProxyProvider<ProfileProvider, ChatProvider>(
+          create: (_) => ChatProvider(),
+          update: (_, profile, chat) {
+            chat ??= ChatProvider();
+            // Initialize chat provider with current profile user id
+            try {
+              chat.init(userId: profile.profile.id, type: 'user');
+            } catch (_) {}
+            return chat;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => NetworkProvider()),
       ],
       child: MaterialApp(
@@ -43,7 +53,7 @@ class JobPortalApp extends StatelessWidget {
         theme: ThemeData(fontFamily: 'DMSans', primarySwatch: Colors.blue),
 
         debugShowCheckedModeBanner: false,
-        initialRoute: AppRoutes.main,
+        initialRoute: AppRoutes.login,
         onGenerateRoute: AppRouter.generateRoute,
       ),
     );
@@ -51,7 +61,7 @@ class JobPortalApp extends StatelessWidget {
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   State<MainScreen> createState() => _HomeScreenState();

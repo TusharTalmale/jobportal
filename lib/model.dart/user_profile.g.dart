@@ -17,6 +17,7 @@ UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
   gender: json['gender'] as String? ?? 'male',
   dateOfBirth: json['dateOfBirth'] as String?,
   aboutMe: json['aboutMe'] as String? ?? '',
+  userType: json['userType'] as String? ?? 'user',
   workExperiences:
       (json['workExperiences'] as List<dynamic>?)
           ?.map((e) => WorkExperience.fromJson(e as Map<String, dynamic>))
@@ -62,6 +63,7 @@ Map<String, dynamic> _$UserProfileToJson(
   'gender': instance.gender,
   'dateOfBirth': instance.dateOfBirth,
   'aboutMe': instance.aboutMe,
+  'userType': instance.userType,
   'workExperiences': instance.workExperiences.map((e) => e.toJson()).toList(),
   'educations': instance.educations.map((e) => e.toJson()).toList(),
   'languages': instance.languages.map((e) => e.toJson()).toList(),

@@ -8,10 +8,6 @@ class OtpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve the email argument passed from the previous screen.
-    // This is crucial for knowing which user's OTP to verify.
-    final String email = ModalRoute.of(context)!.settings.arguments as String;
-
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, child) {
         return Scaffold(
@@ -23,7 +19,7 @@ class OtpScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Confirm OTP?',
+                    'Confirm Your OTP',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -32,7 +28,7 @@ class OtpScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'To reset your password, you need your email or mobile number that can be authenticated',
+                    'We have sent an OTP to your email address. Please check your inbox to complete the verification.',
                     style: TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 24),
@@ -58,10 +54,7 @@ class OtpScreen extends StatelessWidget {
                       onPressed:
                           authViewModel.isLoading
                               ? null
-                              : () => authViewModel.verifyOtpForPasswordReset(
-                                context,
-                                email,
-                              ),
+                              : () => authViewModel.verifySignupOtp(context),
                       child:
                           authViewModel.isLoading
                               ? const CircularProgressIndicator(
@@ -70,24 +63,43 @@ class OtpScreen extends StatelessWidget {
                               : const Text('VERIFY OTP'),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFFECEAFF),
-                        side: BorderSide.none,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        'BACK TO LOGIN',
-                        style: TextStyle(color: Color(0xFF13005A)),
-                      ),
-                    ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child:
+                        authViewModel.isOtpTimerActive
+                            ? Text(
+                              'Resend OTP in ${authViewModel.otpResendSeconds}s',
+                              style: const TextStyle(color: Colors.grey),
+                            )
+                            : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "Didn't receive the code? ",
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                                TextButton(
+                                  onPressed:
+                                      authViewModel.isLoading
+                                          ? null
+                                          : () =>
+                                              authViewModel.resendSignupOtp(),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Resend OTP',
+                                    style: TextStyle(
+                                      color: Color(0xFF13005A),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                   ),
                 ],
               ),

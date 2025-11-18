@@ -5,7 +5,7 @@ import 'package:jobportal/api/api_response.dart';
 import 'package:jobportal/api/job_api_service.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/provider/api_client.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jobportal/services/local_storage_service.dart';
 
 import '../api/company_api_service.dart';
 import '../model.dart/company.dart';
@@ -14,6 +14,7 @@ class JobProvider extends ChangeNotifier {
   // --- API Service ---
   final JobApiService _jobApiService = ApiClient().jobApiService;
   final CompanyApiService _companyApiService = ApiClient().companyApiService;
+  final LocalStorageService _storageService = LocalStorageService();
 
   // --- State ---
   List<Job> _allJobs = [];
@@ -21,6 +22,10 @@ class JobProvider extends ChangeNotifier {
   List<Company> _allCompanies = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Authenticated user info
+  int? _currentUserId;
+  String _userType = 'user';
 
   final List<Job> _savedJobs = [];
   final List<Job> _recentJobs = [];
@@ -35,14 +40,15 @@ class JobProvider extends ChangeNotifier {
   String _lastUpdate = "Any time";
   String _workplace = "On-site";
   List<String> _jobTypes = []; // Multi-select
-  List<String> _positions = []; // Multi-select, but original UI was single-select
+  List<String> _positions =
+      []; // Multi-select, but original UI was single-select
   List<String> _cities = []; // Multi-select
   RangeValues _salaryRange = const RangeValues(5, 40); // Default to full range
   String _experience = "No experience";
   List<String> _specialization = []; // Multi-select
 
   // --- Active Filters Map (for quick lookup and UI display) ---
-  Map<String, Set<String>> _activeFilters = {};
+  final Map<String, Set<String>> _activeFilters = {};
 
   // --- Available Options (for UI to build dynamically) ---
   final List<String> _availableLastUpdates = [
@@ -90,8 +96,7 @@ class JobProvider extends ChangeNotifier {
 
   // --- Constructor ---
   JobProvider() {
-    // Fetch jobs from the API when the provider is initialized
-    fetchJobs();
+    _loadUserDataAndFetchJobs();
 
     // Add listeners to update filters when text changes
     designationController.addListener(() {
@@ -100,6 +105,18 @@ class JobProvider extends ChangeNotifier {
     locationController.addListener(() {
       setLocationFilter(locationController.text);
     });
+  }
+
+  /// Load user data from storage and fetch jobs
+  Future<void> _loadUserDataAndFetchJobs() async {
+    try {
+      _currentUserId = _storageService.getUserId();
+      _userType = _storageService.getUserType() ?? 'user';
+      await fetchJobs();
+    } catch (e) {
+      print('Error loading user data: $e');
+      await fetchJobs();
+    }
   }
 
   // --- Getters for Filter States ---
@@ -129,6 +146,8 @@ class JobProvider extends ChangeNotifier {
   List<Job> get recentJobs => _recentJobs;
   List<Company> get allCompanies => _allCompanies;
   Map<String, Set<String>> get activeFilters => _activeFilters;
+  int? get currentUserId => _currentUserId;
+  String get userType => _userType;
 
   // --- Job Details Method ---
   Job? getJobById(int id) {
@@ -182,18 +201,17 @@ class JobProvider extends ChangeNotifier {
   }
 
   Future<void> _saveRecentJobs() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Store a list of job IDs instead of the full job object
+    // Store a list of job IDs
     final recentJobIds = _recentJobs.map((job) => job.id.toString()).toList();
-    await prefs.setStringList('recentJobIds', recentJobIds);
+    await _storageService.saveString('recentJobIds', recentJobIds.join(','));
   }
 
   Future<void> _loadRecentJobs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final recentJobIds = prefs.getStringList('recentJobIds');
+    final recentJobIdsString = _storageService.getString('recentJobIds');
 
-    if (recentJobIds != null) {
+    if (recentJobIdsString != null && recentJobIdsString.isNotEmpty) {
       // Reconstruct the _recentJobs list from the saved IDs
+      final recentJobIds = recentJobIdsString.split(',');
       final loadedJobs = <Job>[];
       for (final id in recentJobIds) {
         // Find the job from the main list of all jobs
@@ -230,7 +248,8 @@ class JobProvider extends ChangeNotifier {
         final errorResponse = ErrorResponse.fromJson(e.response!.data);
         _errorMessage = errorResponse.error;
       } else {
-        _errorMessage = 'An unexpected network error occurred. Please try again.';
+        _errorMessage =
+            'An unexpected network error occurred. Please try again.';
       }
       // In case of error, ensure lists are empty
       _allJobs = [];
@@ -376,8 +395,11 @@ class JobProvider extends ChangeNotifier {
           if (!lastUpdateMatch) return false;
 
           // 3. Workplace filter
-          if (_workplace.isNotEmpty && _workplace != "On-site") { // Assuming "On-site" is default and we only filter if changed
-            final workplaceMatch = (job.workpLaceType ?? '').toLowerCase() == _workplace.toLowerCase();
+          if (_workplace.isNotEmpty && _workplace != "On-site") {
+            // Assuming "On-site" is default and we only filter if changed
+            final workplaceMatch =
+                (job.workpLaceType ?? '').toLowerCase() ==
+                _workplace.toLowerCase();
             if (!workplaceMatch) return false;
           }
 
@@ -386,7 +408,7 @@ class JobProvider extends ChangeNotifier {
               _jobTypes.isEmpty ||
               _jobTypes.any(
                 (type) =>
-                    (job.jobType ?? '').toLowerCase() == type.toLowerCase()
+                    (job.jobType ?? '').toLowerCase() == type.toLowerCase(),
               );
           if (!jobTypeMatch) return false;
 
@@ -396,7 +418,8 @@ class JobProvider extends ChangeNotifier {
               _positions.any((pos) {
                 final positionName =
                     pos.toLowerCase() == 'leader' ? 'lead' : pos.toLowerCase();
-                return (job.position ?? '').toLowerCase() == positionName.toLowerCase();
+                return (job.position ?? '').toLowerCase() ==
+                    positionName.toLowerCase();
               });
           if (!positionMatch) return false;
 
@@ -406,7 +429,10 @@ class JobProvider extends ChangeNotifier {
               _cities.isEmpty ||
               _cities.any(
                 (city) => (job.jobLocation ?? '').toLowerCase().contains(
-                  city.split(',').first.toLowerCase(), // Match just the city name
+                  city
+                      .split(',')
+                      .first
+                      .toLowerCase(), // Match just the city name
                 ),
               );
           if (!cityMatch) return false;
@@ -432,7 +458,9 @@ class JobProvider extends ChangeNotifier {
           // 8. Experience filter
           // Assuming job.experienceLevel exists in Job model (e.g., "5-10 years")
           if (_experience.isNotEmpty && _experience != "No experience") {
-            final experienceMatch = (job.experience ?? '').toLowerCase() == _experience.toLowerCase();
+            final experienceMatch =
+                (job.experience ?? '').toLowerCase() ==
+                _experience.toLowerCase();
             if (!experienceMatch) return false;
           }
 

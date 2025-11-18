@@ -4,7 +4,7 @@ import 'package:jobportal/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 
 class SkillsScreen extends StatefulWidget {
-  const SkillsScreen({Key? key}) : super(key: key);
+  const SkillsScreen({super.key});
 
   @override
   State<SkillsScreen> createState() => _SkillsScreenState();

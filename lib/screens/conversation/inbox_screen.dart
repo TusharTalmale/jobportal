@@ -36,7 +36,17 @@ class InboxScreen extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const Icon(Icons.more_horiz, size: 26),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.chat_bubble_outline),
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/chat');
+                              },
+                            ),
+                            const Icon(Icons.more_horiz, size: 26),
+                          ],
+                        ),
                       ],
                     ),
                   ),

@@ -12,23 +12,23 @@ abstract class PostApiService {
 
   // --- Post Endpoints ---
 
-  @GET("/api/posts")
+  @GET(ApiConstants.posts)
   Future<PaginatedPostsResponse> getAllPosts({
     @Query("page") int page = 1,
     @Query("limit") int limit = 15,
   });
 
-  @GET("/api/posts/{postId}")
+  @GET(ApiConstants.postById)
   Future<CompanyPost> getPostById(@Path("postId") int postId);
 
-  @GET("/api/company/{companyId}/posts")
+  @GET(ApiConstants.companyPosts)
   Future<PaginatedPostsResponse> getPostsByCompany(
     @Path("companyId") int companyId, {
     @Query("page") int page = 1,
     @Query("limit") int limit = 15,
   });
 
-  @POST("/api/posts/{postId}/toggle-like")
+  @POST(ApiConstants.togglePostLike)
   Future<dynamic> togglePostLike(
     @Path("postId") int postId,
     @Body() Map<String, int> body, // e.g., {"userId": 1}
@@ -36,25 +36,25 @@ abstract class PostApiService {
 
   // --- Comment Endpoints ---
 
-  @POST("/api/posts/{postId}/comments")
+  @POST(ApiConstants.postComments)
   Future<Comment> addComment(
     @Path("postId") int postId,
     @Body() Map<String, dynamic> body, // {"userId": 1, "text": "..."}
   );
 
-  @POST("/api/comments/{commentId}/replies")
+  @POST(ApiConstants.commentReplies)
   Future<Comment> addReplyToComment(
     @Path("commentId") int commentId,
     @Body() Map<String, dynamic> body, // {"userId": 1, "text": "..."}
   );
 
-  @POST("/api/comments/{commentId}/toggle-like")
+  @POST(ApiConstants.toggleCommentLike)
   Future<dynamic> toggleCommentLike(
     @Path("commentId") int commentId,
     @Body() Map<String, int> body, // {"userId": 1}
   );
 
-  @DELETE("/api/comments/{commentId}")
+  @DELETE(ApiConstants.deleteComment)
   Future<void> deleteComment(
     @Path("commentId") int commentId,
     @Body() Map<String, int> body, // {"userId": 1} for authorization

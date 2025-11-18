@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:jobportal/model.dart/company.dart';
 import 'package:jobportal/screens/auth/login_screen.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/screens/auth/onboarding_screen.dart';
 import 'package:jobportal/screens/auth/otp_screen.dart';
 import 'package:jobportal/screens/auth/signup_screen.dart';
 import 'package:jobportal/screens/conversation/inbox_screen.dart';
+import 'package:jobportal/screens/chat_list_screen.dart';
 import 'package:jobportal/screens/home_screen.dart';
 import 'package:jobportal/screens/job/apply_job/apply_job_page.dart';
 import 'package:jobportal/screens/job/find_job_page.dart';
@@ -48,6 +48,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const JobListingScreen());
       case AppRoutes.inbox:
         return MaterialPageRoute(builder: (_) => const InboxScreen());
+      case AppRoutes.chatList:
+        return MaterialPageRoute(builder: (_) => const ChatListScreen());
       case AppRoutes.savedJobs:
         return MaterialPageRoute(builder: (_) => const SavedJobsScreen());
       case AppRoutes.aboutMe:
@@ -71,8 +73,6 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => CompanyDetailScreen(companyId: companyId),
         );
-
-      
 
       case AppRoutes.workExperience:
       case AppRoutes.education:

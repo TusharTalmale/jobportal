@@ -1,8 +1,5 @@
 class ApiConstants {
-  // Replace with your actual base URL.
-  // Use 10.0.2.2 for the Android emulator to connect to localhost.
-  // For iOS simulator, use localhost or your machine's IP address.
-  static const String baseUrl = "http://10.50.124.250:3000";
+  static const String baseUrl = "http://10.98.73.250:3000";
 
   // Auth Endpoints
   static const String signupSendOtp = "/api/signup/send-otp";
@@ -18,4 +15,22 @@ class ApiConstants {
   static const String companies = "/api/company"; // for GET all and POST
   static const String companyById =
       "/api/company/{id}"; // for GET by id, PUT, DELETE
+
+  // Post & Comment Endpoints
+  static const String posts = "/api/posts";
+  static const String postById = "/api/posts/{postId}";
+  static const String companyPosts = "/api/company/{companyId}/posts";
+  static const String togglePostLike = "/api/posts/{postId}/toggle-like";
+  static const String postComments = "/api/posts/{postId}/comments";
+  static const String commentReplies = "/api/comments/{commentId}/replies";
+  static const String toggleCommentLike =
+      "/api/comments/{commentId}/toggle-like";
+  static const String deleteComment = "/api/comments/{commentId}";
+
+  // Chat Endpoints
+  static const String chatBase = "/api/chat";
+  static const String chatConversations =
+      "/api/chat"; // GET with ?userId, POST to find/create
+  static const String chatMessages = "/api/chat/{conversationId}/messages";
+  static const String chatMarkRead = "/api/chat/{conversationId}/messages/read";
 }

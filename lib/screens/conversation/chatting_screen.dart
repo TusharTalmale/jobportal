@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:jobportal/provider/chat_provider.dart';
 import 'package:jobportal/model.dart/conversation.dart';
 import 'package:jobportal/model.dart/message.dart';
@@ -24,21 +26,54 @@ class ChattingScreen extends StatefulWidget {
 class _ChattingScreenState extends State<ChattingScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isLoading = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+
   Message? _replyingToMessage;
 
   @override
   void initState() {
     super.initState();
-    // If an initial job is provided, send it as the first message
+    _fetchInitialMessages();
+
+    _scrollController.addListener(() {
+      // Check if we're at the top of the list
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        _fetchMoreMessages();
+      }
+    });
+  }
+
+  Future<void> _fetchInitialMessages() async {
+    setState(() => _isLoading = true);
+    await widget.chatProvider.fetchMessages(widget.conversation.id);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+
+    // If an initial job is provided, send it after fetching messages
     if (widget.initialJob != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.chatProvider.sendJob(
-          widget.conversation.id,
-          MessageSender.user,
-          widget.initialJob!,
-          text: 'I\'m interested in this job:',
-        );
-        _scrollToBottom();
+      _sendJobMessage(widget.initialJob!);
+    }
+  }
+
+  Future<void> _fetchMoreMessages() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() => _isLoading = true);
+    _currentPage++;
+    final newMessages = await widget.chatProvider.fetchMessages(
+      widget.conversation.id,
+      page: _currentPage,
+      append: true,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _hasMore = newMessages.isNotEmpty;
       });
     }
   }
@@ -50,57 +85,67 @@ class _ChattingScreenState extends State<ChattingScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    _scrollController.animateTo(
-      _scrollController
-          .position
-          .minScrollExtent, // Use minScrollExtent for reverse: true
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
-
-  void _sendMessage() {
+  void _sendMessage() async {
     if (_messageController.text.trim().isEmpty) {
       return;
     }
-    setState(() {
-      widget.chatProvider.sendMessage(
-        widget.conversation.id,
-        MessageSender.user,
-        _messageController.text,
-        repliedToMessageId: _replyingToMessage?.id,
-      );
-      _messageController.clear();
-      _replyingToMessage = null; // Clear reply state
-    });
-    _scrollToBottom();
+
+    final payload = {
+      'senderId': widget.chatProvider.userId,
+      'senderType': widget.chatProvider.userType,
+      'messageType': 'text',
+      'text': _messageController.text.trim(),
+      if (_replyingToMessage != null)
+        'repliedToMessageId': _replyingToMessage!.id,
+    };
+
+    await widget.chatProvider.sendMessage(widget.conversation.id, payload);
+
+    if (mounted) {
+      setState(() {
+        _messageController.clear();
+        _replyingToMessage = null; // Clear reply state
+      });
+    }
   }
 
-  void _sendFile() {
-    // Simulate file sending
-    widget.chatProvider.sendFile(
-      widget.conversation.id,
-      MessageSender.user,
-      'Document.pdf',
-      'assets/files/document.pdf',
-    ); // Placeholder
-    _scrollToBottom();
+  void _sendJobMessage(Job job) async {
+    final payload = {
+      'senderId': widget.chatProvider.userId,
+      'senderType': widget.chatProvider.userType,
+      'messageType': 'job',
+      'jobId': job.id,
+      'text': 'I\'m interested in this job:',
+    };
+    await widget.chatProvider.sendMessage(widget.conversation.id, payload);
+  }
+
+  void _sendFile() async {
+    // This is a placeholder. In a real app, you would use a file picker
+    // to get a file, upload it to a server to get a URL, then send the message.
+    final payload = {
+      'senderId': widget.chatProvider.userId,
+      'senderType': widget.chatProvider.userType,
+      'messageType': 'file',
+      'fileName': 'document.pdf',
+      'fileUrl':
+          'https://example.com/document.pdf', // This should be a real URL
+    };
+    await widget.chatProvider.sendMessage(widget.conversation.id, payload);
   }
 
   // Helper to find a message by ID within the current conversation
   Message? _findMessageInConversation(String messageId) {
-    return widget.conversation.messages.firstWhere(
-      (msg) => msg.id == messageId,
-      orElse: () => null as Message,
-    );
+    final messages = widget.chatProvider.messages[widget.conversation.id] ?? [];
+    try {
+      return messages.firstWhere((msg) => msg.id.toString() == messageId);
+    } catch (e) {
+      return null;
+    }
   }
 
   Widget _buildMessageBubble(Message message, bool isUser) {
-    final repliedToMessage =
-        message.repliedToMessageId != null
-            ? _findMessageInConversation(message.repliedToMessageId!)
-            : null;
+    final repliedToMessage = message.repliedTo;
 
     return GestureDetector(
       onLongPress: () {
@@ -139,8 +184,8 @@ class _ChattingScreenState extends State<ChattingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        repliedToMessage.sender == MessageSender.user
-                            ? 'You replied to:'
+                        repliedToMessage.senderType == MessageSender.user
+                            ? 'You replied'
                             : '${widget.conversation.companyName} replied to:',
                         style: TextStyle(
                           fontSize: 12.0,
@@ -149,7 +194,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                         ),
                       ),
                       const SizedBox(height: 4.0),
-                      if (repliedToMessage.type == MessageType.text)
+                      if (repliedToMessage.messageType == MessageType.text)
                         Text(
                           repliedToMessage.text!,
                           maxLines: 1,
@@ -159,7 +204,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                             color: Colors.grey[700],
                           ),
                         ),
-                      if (repliedToMessage.type == MessageType.file)
+                      if (repliedToMessage.messageType == MessageType.file)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -180,9 +225,9 @@ class _ChattingScreenState extends State<ChattingScreen> {
                             ),
                           ],
                         ),
-                      if (repliedToMessage.type == MessageType.job)
+                      if (repliedToMessage.messageType == MessageType.job)
                         Text(
-                          'Job: ${repliedToMessage.jobData!.jobTitle}',
+                          'Job: ${repliedToMessage.jobData?.jobTitle ?? ''}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -193,9 +238,11 @@ class _ChattingScreenState extends State<ChattingScreen> {
                     ],
                   ),
                 ),
-              if (message.type == MessageType.text && message.text != null)
+              if (message.messageType == MessageType.text &&
+                  message.text != null)
                 Text(message.text!),
-              if (message.type == MessageType.file && message.fileName != null)
+              if (message.messageType == MessageType.file &&
+                  message.fileName != null)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -206,7 +253,8 @@ class _ChattingScreenState extends State<ChattingScreen> {
                     const Icon(Icons.download_for_offline, size: 20),
                   ],
                 ),
-              if (message.type == MessageType.job && message.jobData != null)
+              if (message.messageType == MessageType.job &&
+                  message.jobData != null)
                 Container(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.6,
@@ -233,21 +281,9 @@ class _ChattingScreenState extends State<ChattingScreen> {
                       Row(
                         children: [
                           CircleAvatar(
-                            backgroundImage:
-                            // message.jobData!.company!.companyGallery!.first
-                            //         .startsWith('http')
-                            //     ?
-                            NetworkImage(
-                              message.jobData!.company!.companyGallery!.first,
+                            backgroundImage: NetworkImage(
+                              message.jobData?.company?.companyLogo ?? '',
                             ),
-                            // : AssetImage(
-                            //       message
-                            //           .jobData!
-                            //           .company
-                            //           .companyGallery!
-                            //           .first,
-                            //     )
-                            //     as ImageProvider,
                             radius: 15,
                           ),
                           const SizedBox(width: 8),
@@ -265,11 +301,11 @@ class _ChattingScreenState extends State<ChattingScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        message.jobData!.company!.companyName!,
+                        message.jobData?.company?.companyName ?? '',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                       Text(
-                        '${message.jobData!.company!.companyName} • ${message.jobData!.salary}',
+                        '${message.jobData?.company?.companyName ?? ''} • ${message.jobData?.salary ?? ''}',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                     ],
@@ -277,7 +313,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                 ),
               const SizedBox(height: 4.0),
               Text(
-                DateFormat.jm().format(message.timestamp), // e.g., 5:30 PM
+                DateFormat.jm().format(message.createdAt), // e.g., 5:30 PM
                 style: TextStyle(color: Colors.grey[600], fontSize: 10.0),
               ),
             ],
@@ -289,11 +325,9 @@ class _ChattingScreenState extends State<ChattingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to changes in the ChatProvider
-    final currentConversation = widget.chatProvider.conversations.firstWhere(
-      (conv) => conv.id == widget.conversation.id,
-    );
-    final messages = currentConversation.messages;
+    // Use a Consumer to listen for changes in the provider
+    final messages =
+        context.watch<ChatProvider>().messages[widget.conversation.id] ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -306,18 +340,17 @@ class _ChattingScreenState extends State<ChattingScreen> {
             ),
             CircleAvatar(
               backgroundImage:
-                  (currentConversation.companyData.companyGallery?.isNotEmpty ??
+                  (widget.conversation.company?.companyLogo?.isNotEmpty ??
                           false)
-                      ? NetworkImage(
-                        currentConversation.companyData.companyGallery!.first,
-                      )
-                      : null,
+                      ? NetworkImage(widget.conversation.company!.companyLogo!)
+                      : const AssetImage('assets/images/google_logo.png')
+                          as ImageProvider,
               radius: 15,
             ),
           ],
         ),
         title: Text(
-          currentConversation.companyName,
+          widget.conversation.companyName,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
@@ -325,20 +358,29 @@ class _ChattingScreenState extends State<ChattingScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8.0),
-              reverse: true, // Show latest messages at the bottom
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message =
-                    messages[messages.length -
-                        1 -
-                        index]; // Display in chronological order
-                final isUser = message.sender == MessageSender.user;
-                return _buildMessageBubble(message, isUser);
-              },
-            ),
+            child:
+                _isLoading && messages.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(8.0),
+                      reverse: true, // Show latest messages at the bottom
+                      itemCount: messages.length + (_isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (_isLoading && index == messages.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        final message = messages[index];
+                        final isUser =
+                            message.senderId == widget.chatProvider.userId;
+                        return _buildMessageBubble(message, isUser);
+                      },
+                    ),
           ),
           if (_replyingToMessage != null)
             Container(
@@ -358,7 +400,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (_replyingToMessage!.type == MessageType.text)
+                        if (_replyingToMessage!.messageType == MessageType.text)
                           Text(
                             _replyingToMessage!.text!,
                             maxLines: 1,
@@ -368,7 +410,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                               color: Colors.grey[600],
                             ),
                           ),
-                        if (_replyingToMessage!.type == MessageType.file)
+                        if (_replyingToMessage!.messageType == MessageType.file)
                           Text(
                             'File: ${_replyingToMessage!.fileName!}',
                             maxLines: 1,
@@ -378,7 +420,7 @@ class _ChattingScreenState extends State<ChattingScreen> {
                               color: Colors.grey[600],
                             ),
                           ),
-                        if (_replyingToMessage!.type == MessageType.job)
+                        if (_replyingToMessage!.messageType == MessageType.job)
                           Text(
                             'Job: ${_replyingToMessage!.jobData!.jobTitle}',
                             maxLines: 1,
@@ -439,108 +481,3 @@ class _ChattingScreenState extends State<ChattingScreen> {
     );
   }
 }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         leadingWidth: 80,
-//         leading: Row(
-//           children: [
-//             IconButton(
-//               icon: const Icon(Icons.arrow_back),
-//               onPressed: () => Navigator.of(context).pop(),
-//             ),
-//             CircleAvatar(
-//               backgroundImage:
-//                   conversation.companyLogoUrl.startsWith('http')
-//                       ? NetworkImage(widget.conversation.companyLogoUrl)
-//                       : AssetImage(widget.conversation.companyLogoUrl)
-//                           as ImageProvider,
-//               radius: 15,
-//             ),
-//           ],
-//         ),
-//         title: Text(
-//           widget.conversation.companyName,
-//           style: const TextStyle(fontWeight: FontWeight.bold),
-//         ),
-//         centerTitle: false,
-//       ),
-//       body: Column(
-//         children: [
-//           Expanded(
-//             child: ListView.builder(
-//               padding: const EdgeInsets.all(8.0),
-//               reverse: true, // Show latest messages at the bottom
-//               itemCount: _messages.length,
-//               itemBuilder: (context, index) {
-//                 final message =
-//                     _messages[_messages.length -
-//                         1 -
-//                         index]; // Display in chronological order
-//                 final isUser = message.sender == MessageSender.user;
-//                 return Align(
-//                   alignment:
-//                       isUser ? Alignment.centerRight : Alignment.centerLeft,
-//                   child: Container(
-//                     margin: const EdgeInsets.symmetric(vertical: 4.0),
-//                     padding: const EdgeInsets.all(10.0),
-//                     decoration: BoxDecoration(
-//                       color: isUser ? Colors.blue[100] : Colors.grey[200],
-//                       borderRadius: BorderRadius.circular(12.0),
-//                     ),
-//                     child: Column(
-//                       crossAxisAlignment:
-//                           isUser
-//                               ? CrossAxisAlignment.end
-//                               : CrossAxisAlignment.start,
-//                       children: [
-//                         Text(message.text),
-//                         const SizedBox(height: 4.0),
-//                         Text(
-//                           DateFormat.jm().format(
-//                             message.timestamp,
-//                           ), // e.g., 5:30 PM
-//                           style: TextStyle(
-//                             color: Colors.grey[600],
-//                             fontSize: 10.0,
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 );
-//               },
-//             ),
-//           ),
-//           Padding(
-//             padding: const EdgeInsets.all(8.0),
-//             child: Row(
-//               children: [
-//                 Expanded(
-//                   child: TextField(
-//                     controller: _messageController,
-//                     decoration: InputDecoration(
-//                       hintText: 'Type a message...',
-//                       border: OutlineInputBorder(
-//                         borderRadius: BorderRadius.circular(20.0),
-//                       ),
-//                       contentPadding: const EdgeInsets.symmetric(
-//                         horizontal: 16.0,
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 IconButton(
-//                   icon: const Icon(Icons.send),
-//                   onPressed: _sendMessage,
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }

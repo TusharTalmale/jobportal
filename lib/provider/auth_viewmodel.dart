@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:jobportal/api/api_response.dart';
 import 'package:jobportal/api/auth_api_service.dart';
 import 'package:jobportal/provider/api_client.dart';
-
+import 'package:jobportal/services/local_storage_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   // Form Keys
@@ -14,7 +15,6 @@ class AuthViewModel extends ChangeNotifier {
   final TextEditingController loginMobileController = TextEditingController();
   final TextEditingController loginOtpController = TextEditingController();
   bool _rememberMeLogin = false;
-  bool _showPasswordLogin = false;
 
   // Signup Screen Controllers
   final TextEditingController signupNameController = TextEditingController();
@@ -28,15 +28,30 @@ class AuthViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+  int? _currentUserId;
+  String? _emailForVerification;
+  String? _currentUserEmail;
+  String? _currentUserEmail;
+  String _currentUserType = 'user';
+
+  // Timer for OTP resend
+  Timer? _otpTimer;
+  int _otpResendSeconds = 30;
 
   // API Service
   final AuthApiService _authApiService = ApiClient().authApiService;
+  final LocalStorageService _storageService = LocalStorageService();
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get rememberMeLogin => _rememberMeLogin;
-  bool get showPasswordLogin => _showPasswordLogin;
   bool get rememberMeSignup => _rememberMeSignup;
+  int? get currentUserId => _currentUserId;
+  String? get currentUserEmail => _currentUserEmail;
+  String? get currentUserType => _currentUserType;
+  bool get isUserLoggedIn => _storageService.isLoggedIn();
+  int get otpResendSeconds => _otpResendSeconds;
+  bool get isOtpTimerActive => _otpTimer?.isActive ?? false;
 
   void _setLoading(bool value) {
     if (_isLoading == value) return;
@@ -54,16 +69,52 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleShowPasswordLogin() {
-    _showPasswordLogin = !_showPasswordLogin;
-    notifyListeners();
-  }
-
   void toggleRememberMeSignup(bool? value) {
     _rememberMeSignup = value ?? false;
     notifyListeners();
   }
 
+  /// Initialize the viewmodel - should be called once at app startup
+  Future<void> initializeAuth() async {
+    try {
+      // Check if user was previously logged in
+      if (_storageService.isLoggedIn()) {
+        _currentUserId = _storageService.getUserId();
+        _currentUserEmail = _storageService.getUserEmail();
+        _currentUserType = _storageService.getUserType() ?? 'user';
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error initializing auth: $e');
+    }
+  }
+
+  /// Send OTP for login
+  Future<void> sendLoginOtp(BuildContext context) async {
+    if (loginMobileController.text.isEmpty) {
+      _setErrorMessage("Please enter your email.");
+      return;
+    }
+
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _authApiService.loginSendOtp({
+        'email': loginMobileController.text,
+      });
+
+      print('Login OTP Sent: ${response.message}');
+      _setErrorMessage(null);
+      notifyListeners();
+    } on DioException catch (e) {
+      _handleError(e);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Verify login OTP and perform login
   Future<void> login(BuildContext context) async {
     // Validate the form
     if (loginFormKey.currentState?.validate() != true) {
@@ -74,26 +125,59 @@ class AuthViewModel extends ChangeNotifier {
     _setErrorMessage(null);
 
     try {
-      // The backend expects an email for login. Assuming the mobile controller is used for email.
       final response = await _authApiService.loginVerifyOtp({
         'email': loginMobileController.text,
         'otp': loginOtpController.text,
       });
 
       print('Login successful: ${response.message}');
-      // TODO: Handle successful login:
-      // 1. Save the user data (response.user) to a user provider/state management.
-      // 2. Securely store the JWT token (when you implement it).
-      // 3. Navigate to the home screen.
-      // Navigator.pushReplacementNamed(context, '/home');
+
+      // Save user data to local storage
+      final userData = response.user.toJson();
+      await _storageService.saveUserData(userData);
+
+      // Save specific user info
+      _currentUserId = response.user.id;
+      _currentUserEmail = response.user.email;
+      _currentUserType = response.user.userType;
+
+      await _storageService.saveUserId(response.user.id);
+      await _storageService.saveUserEmail(response.user.email);
+      await _storageService.saveUserName(response.user.fullName);
+      await _storageService.saveUserType(_currentUserType);
+
+      // Save remember me preference
+      if (_rememberMeLogin) {
+        await _storageService.setRememberMe(true);
+        await _storageService.setSavedEmail(loginMobileController.text);
+      }
+
+      // Set login status
+      await _storageService.setLoginStatus(true);
+
+      notifyListeners();
+
+      _clearLoginFields();
+
+      // Navigate to home screen
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } on DioException catch (e) {
-      _handleError(e);
+      if (e.response?.statusCode == 400) {
+        _setErrorMessage(
+          "The OTP you entered is incorrect. Please check and try again.",
+        );
+      } else {
+        _handleError(e);
+      }
     } finally {
       _setLoading(false);
     }
   }
 
-  Future<void> signup(BuildContext context) async {
+  /// Send OTP for signup
+  Future<void> sendSignupOtp(BuildContext context) async {
     // Validate the form
     if (signupFormKey.currentState?.validate() != true) {
       return;
@@ -110,12 +194,18 @@ class AuthViewModel extends ChangeNotifier {
       });
 
       print('Signup OTP Sent: ${response.message}');
-      // Navigate to an OTP screen for signup verification, passing the email.
-      Navigator.pushNamed(
-        context,
-        '/signup-otp',
-        arguments: signupEmailController.text,
-      );
+      _emailForVerification = signupEmailController.text;
+      _setErrorMessage(null);
+      startOtpTimer(); // Start the timer on initial send
+
+      // Navigate to OTP verification screen for signup
+      if (context.mounted) {
+        Navigator.pushNamed(
+          context,
+          '/otp',
+          // No longer need to pass arguments
+        );
+      }
     } on DioException catch (e) {
       _handleError(e);
     } finally {
@@ -123,10 +213,10 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> sendOtpForPasswordReset(BuildContext context) async {
-    // Assuming the user has entered their email in the loginMobileController
-    if (loginMobileController.text.isEmpty) {
-      _setErrorMessage("Please enter your email to reset the password.");
+  /// Resend OTP for signup
+  Future<void> resendSignupOtp() async {
+    if (_emailForVerification == null) {
+      _setErrorMessage("Email not found. Please go back and try again.");
       return;
     }
 
@@ -134,16 +224,12 @@ class AuthViewModel extends ChangeNotifier {
     _setErrorMessage(null);
 
     try {
-      final response = await _authApiService.loginSendOtp({
-        'email': loginMobileController.text,
+      final response = await _authApiService.signupSendOtp({
+        'email': _emailForVerification,
       });
-      print('Password Reset OTP Sent: ${response.message}');
-      // Navigate to OTP verification screen, passing the email
-      Navigator.pushNamed(
-        context,
-        '/otp',
-        arguments: loginMobileController.text,
-      );
+
+      print('Signup OTP Resent: ${response.message}');
+      startOtpTimer(); // Restart the timer
     } on DioException catch (e) {
       _handleError(e);
     } finally {
@@ -151,24 +237,59 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> verifyOtpForPasswordReset(
-    BuildContext context,
-    String email,
-  ) async {
+  /// Verify signup OTP and complete registration
+  Future<void> verifySignupOtp(BuildContext context) async {
+    _otpTimer?.cancel();
     _setLoading(true);
     _setErrorMessage(null);
 
     try {
-      // This uses the same verification endpoint as login
-      final response = await _authApiService.loginVerifyOtp({
-        'email': email,
+      final response = await _authApiService.signupVerifyOtp({
+        'email': _emailForVerification,
         'otp': otpVerificationController.text,
       });
-      print('OTP Verified: ${response.message}');
-      // TODO: Navigate to a "Create New Password" screen
-      Navigator.pop(context); // For now, just pop back
+
+      print('Signup verified: ${response.message}');
+
+      // Save user data to local storage
+      final userData = response.user.toJson();
+      await _storageService.saveUserData(userData);
+
+      // Save specific user info
+      _currentUserId = response.user.id;
+      _currentUserEmail = response.user.email;
+      _currentUserType = response.user.userType;
+
+      await _storageService.saveUserId(response.user.id);
+      await _storageService.saveUserEmail(response.user.email);
+      await _storageService.saveUserName(response.user.fullName);
+      await _storageService.saveUserType(
+        _currentUserType,
+      ); // Save remember me preference
+      if (_rememberMeSignup && _emailForVerification != null) {
+        await _storageService.setRememberMe(true);
+        await _storageService.setSavedEmail(signupEmailController.text);
+      }
+
+      // Set login status
+      await _storageService.setLoginStatus(true);
+
+      notifyListeners();
+
+      _clearSignupFields();
+
+      // Navigate to home screen
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } on DioException catch (e) {
-      _handleError(e);
+      if (e.response?.statusCode == 400) {
+        _setErrorMessage(
+          "The OTP is incorrect or has expired. Please try again.",
+        );
+      } else {
+        _handleError(e);
+      }
     } finally {
       _setLoading(false);
     }
@@ -180,9 +301,37 @@ class AuthViewModel extends ChangeNotifier {
       _setErrorMessage(errorResponse.error);
     } else {
       _setErrorMessage(
-        'An unexpected network error occurred. Please try again.',
+        'A network error occurred. Please check your connection and try again.',
       );
     }
+  }
+
+  void _clearLoginFields() {
+    loginMobileController.clear();
+    loginOtpController.clear();
+    _emailForVerification = null;
+  }
+
+  void _clearSignupFields() {
+    signupNameController.clear();
+    signupEmailController.clear();
+    signupMobileController.clear();
+    otpVerificationController.clear();
+    _emailForVerification = null;
+  }
+
+  // --- OTP Timer Methods ---
+  void startOtpTimer() {
+    _otpTimer?.cancel(); // Cancel any existing timer
+    _otpResendSeconds = 30;
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_otpResendSeconds > 0) {
+        _otpResendSeconds--;
+      } else {
+        timer.cancel();
+      }
+      notifyListeners();
+    });
   }
 
   // --- Validators ---
@@ -228,6 +377,7 @@ class AuthViewModel extends ChangeNotifier {
     signupEmailController.dispose();
     signupMobileController.dispose();
     otpVerificationController.dispose();
+    _otpTimer?.cancel();
     super.dispose();
   }
 }
