@@ -8,44 +8,40 @@ part of 'user_profile.dart';
 
 UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
   id: (json['id'] as num).toInt(),
-  fullName: json['fullName'] as String,
-  location: json['location'] as String,
-  email: json['email'] as String,
-  phoneNumber: json['phoneNumber'] as String,
-  countryCode: json['countryCode'] as String,
-  imageUrl: json['imageUrl'] as String?,
-  gender: json['gender'] as String? ?? 'male',
+  fullName: json['fullName'] as String?,
+  location: json['location'] as String?,
+  email: json['email'] as String?,
+  phoneNumber: json['phoneNumber'] as String?,
+  isVerified: json['isVerified'] as bool? ?? false,
+  authProvider: json['authProvider'] as String?,
+  createdAt: json['createdAt'] as String?,
+  updatedAt: json['updatedAt'] as String?,
+  imageUrl: const ImageUrlConverter().fromJson(json['image_url']),
+  gender: json['gender'] as String?,
   dateOfBirth: json['dateOfBirth'] as String?,
-  aboutMe: json['aboutMe'] as String? ?? '',
-  userType: json['userType'] as String? ?? 'user',
+  aboutMe: json['aboutMe'] as String?,
+  userType: json['userType'] as String?,
   workExperiences:
-      (json['workExperiences'] as List<dynamic>?)
+      (json['workExperience'] as List<dynamic>?)
           ?.map((e) => WorkExperience.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
+          .toList(),
   educations:
-      (json['educations'] as List<dynamic>?)
+      (json['education'] as List<dynamic>?)
           ?.map((e) => Education.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
+          .toList(),
   languages:
       (json['languages'] as List<dynamic>?)
           ?.map((e) => Language.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-  skills:
-      (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
+          .toList(),
+  skills: (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
   appreciations:
       (json['appreciations'] as List<dynamic>?)
           ?.map((e) => Appreciation.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
+          .toList(),
   resumes:
-      (json['resumes'] as List<dynamic>?)
+      (json['resume'] as List<dynamic>?)
           ?.map((e) => Resume.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
+          .toList(),
   followers: (json['followers'] as num?)?.toInt() ?? 0,
   following: (json['following'] as num?)?.toInt() ?? 0,
 );
@@ -58,20 +54,23 @@ Map<String, dynamic> _$UserProfileToJson(
   'location': instance.location,
   'email': instance.email,
   'phoneNumber': instance.phoneNumber,
-  'countryCode': instance.countryCode,
-  'imageUrl': instance.imageUrl,
+  'image_url': const ImageUrlConverter().toJson(instance.imageUrl),
   'gender': instance.gender,
   'dateOfBirth': instance.dateOfBirth,
   'aboutMe': instance.aboutMe,
-  'userType': instance.userType,
-  'workExperiences': instance.workExperiences.map((e) => e.toJson()).toList(),
-  'educations': instance.educations.map((e) => e.toJson()).toList(),
-  'languages': instance.languages.map((e) => e.toJson()).toList(),
+  'workExperience': instance.workExperiences?.map((e) => e.toJson()).toList(),
+  'education': instance.educations?.map((e) => e.toJson()).toList(),
+  'languages': instance.languages?.map((e) => e.toJson()).toList(),
   'skills': instance.skills,
-  'appreciations': instance.appreciations.map((e) => e.toJson()).toList(),
-  'resumes': instance.resumes.map((e) => e.toJson()).toList(),
+  'appreciations': instance.appreciations?.map((e) => e.toJson()).toList(),
+  'resume': instance.resumes?.map((e) => e.toJson()).toList(),
+  'userType': instance.userType,
   'followers': instance.followers,
   'following': instance.following,
+  'isVerified': instance.isVerified,
+  'authProvider': instance.authProvider,
+  'createdAt': instance.createdAt,
+  'updatedAt': instance.updatedAt,
 };
 
 WorkExperience _$WorkExperienceFromJson(Map<String, dynamic> json) =>

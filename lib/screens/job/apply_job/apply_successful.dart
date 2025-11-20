@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/job.dart';
+import 'package:jobportal/model.dart/job_application.dart';
 import 'package:jobportal/utils/date_formatter.dart';
 import 'package:jobportal/screens/job/apply_job/apply_job_page.dart';
 
-/// A simple model to represent an uploaded file for this screen.
-/// This should match the definition in apply_job_page.dart
-/*
-class UploadedFile {
-  final String fileName;
-  final String fileSize;
-  final String date;
-  UploadedFile({required this.fileName, required this.fileSize, required this.date});
-}
-*/
 class ApplySuccessfulPage extends StatelessWidget {
   final Job job;
   final UploadedFile file;
+  final JobApplication? jobApplication;
 
-  const ApplySuccessfulPage({super.key, required this.job, required this.file});
+  const ApplySuccessfulPage({
+    super.key,
+    required this.job,
+    required this.file,
+    this.jobApplication,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +62,10 @@ class ApplySuccessfulPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
+            if (jobApplication != null) ...[
+              const SizedBox(height: 24),
+              _buildApplicationStatusCard(),
+            ],
             const SizedBox(height: 48),
             _buildActionButtons(context),
           ],
@@ -177,6 +178,98 @@ class ApplySuccessfulPage extends StatelessWidget {
       color: Colors.green,
       size: 100,
     );
+  }
+
+  Widget _buildApplicationStatusCard() {
+    if (jobApplication == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Application Details',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildStatusRow(
+                'Status',
+                jobApplication!.status.toUpperCase(),
+                _getStatusColor(jobApplication!.status),
+              ),
+              const SizedBox(height: 8),
+              _buildStatusRow(
+                'Submitted',
+                jobApplication!.createdAt != null
+                    ? formatTimeAgo(jobApplication!.createdAt)
+                    : 'Just now',
+                Colors.blue,
+              ),
+              if (jobApplication!.resumeFiles?.isNotEmpty ?? false) ...[
+                const SizedBox(height: 8),
+                _buildStatusRow(
+                  'Resume',
+                  '${jobApplication!.resumeFiles!.length} file(s) uploaded',
+                  Colors.green,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'applied':
+        return Colors.blue;
+      case 'shortlisted':
+        return Colors.orange;
+      case 'interviewed':
+        return Colors.purple;
+      case 'hired':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'withdrawn':
+        return Colors.grey;
+      default:
+        return Colors.blue;
+    }
   }
 
   Widget _buildActionButtons(BuildContext context) {

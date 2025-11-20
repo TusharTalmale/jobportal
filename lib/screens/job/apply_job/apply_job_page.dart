@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import 'package:jobportal/model.dart/job.dart';
+import 'package:jobportal/model.dart/job_application.dart';
+import 'package:jobportal/provider/job_application_provider.dart';
 import 'package:jobportal/utils/date_formatter.dart';
 import 'package:jobportal/screens/job/apply_job/apply_successful.dart';
 
@@ -8,12 +13,31 @@ class UploadedFile {
   final String fileName;
   final String fileSize;
   final String date;
+  final String filePath;
 
   UploadedFile({
     required this.fileName,
     required this.fileSize,
     required this.date,
+    required this.filePath,
   });
+
+  /// Get file size from file path
+  static String getFileSize(String filePath) {
+    try {
+      final file = File(filePath);
+      final bytes = file.lengthSync();
+      if (bytes < 1024) {
+        return '$bytes B';
+      } else if (bytes < 1024 * 1024) {
+        return '${(bytes / 1024).toStringAsFixed(2)} KB';
+      } else {
+        return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+      }
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 }
 
 class ApplyJobPage extends StatefulWidget {
@@ -27,16 +51,65 @@ class ApplyJobPage extends StatefulWidget {
 class _ApplyJobPageState extends State<ApplyJobPage> {
   UploadedFile? _uploadedFile;
   final TextEditingController _infoController = TextEditingController();
+  bool _isApplying = false;
 
-  void _uploadFile() {
-    // This is a simulation. In a real app, you'd use file_picker
-    setState(() {
-      _uploadedFile = UploadedFile(
-        fileName: 'My_CV_Resume.pdf',
-        fileSize: '867 Kb',
-        date: 'Uploaded today',
-      );
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeProvider();
     });
+  }
+
+  void _initializeProvider() {
+    final provider = context.read<JobApplicationProvider>();
+    if (provider.currentUserId == null) {
+      // Set current user if not already set
+      provider.setCurrentUser(1, 'user'); // In real app, get from auth
+    }
+  }
+
+  Future<void> _pickResumeFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final fileName = result.files.single.name;
+        final fileSize = UploadedFile.getFileSize(filePath);
+
+        setState(() {
+          _uploadedFile = UploadedFile(
+            fileName: fileName,
+            fileSize: fileSize,
+            date: 'Now',
+            filePath: filePath,
+          );
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Resume uploaded: $fileName'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _removeFile() {
@@ -45,24 +118,63 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
     });
   }
 
-  void _submitApplication() {
-    // In a real app, you'd send the data to a server
-    if (_uploadedFile != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (context) =>
-                  ApplySuccessfulPage(job: widget.job, file: _uploadedFile!),
-        ),
-      );
-    } else {
-      // Show some error to the user
+  Future<void> _submitApplication() async {
+    if (_uploadedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please upload your CV/Resume'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    setState(() => _isApplying = true);
+
+    try {
+      final provider = context.read<JobApplicationProvider>();
+
+      final success = await provider.createApplication(
+        jobId: widget.job.id,
+        userId: provider.currentUserId ?? 1,
+        resumeFilePaths: [_uploadedFile!.filePath],
+      );
+
+      if (success && mounted) {
+        // Get the newly created application
+        final applications = provider.userApplications;
+        final latestApp = applications.isNotEmpty ? applications.last : null;
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder:
+                (context) => ApplySuccessfulPage(
+                  job: widget.job,
+                  file: _uploadedFile!,
+                  jobApplication: latestApp,
+                ),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              provider.errorMessage ?? 'Failed to submit application',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isApplying = false);
+      }
     }
   }
 
@@ -186,40 +298,83 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
   }
 
   Widget _buildUploadBox() {
-    return GestureDetector(
-      onTap: _uploadFile,
-      child: CustomPaint(
-        painter: DashedBorderPainter(
-          color: Colors.grey[400]!,
-          strokeWidth: 2,
-          radius: const Radius.circular(12),
-          dashPattern: const [8, 4],
-        ),
-        child: Container(
-          // The painter draws on the border, so the child needs padding
-          // to not overlap with the border.
-          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.upload_file, color: Colors.blue),
-              const SizedBox(width: 12),
-              Text(
-                'Upload CV/Resume',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickResumeFile,
+          child: CustomPaint(
+            painter: DashedBorderPainter(
+              color: Colors.grey[400]!,
+              strokeWidth: 2,
+              radius: const Radius.circular(12),
+              dashPattern: const [8, 4],
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.upload_file, color: Colors.blue),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Upload CV/Resume',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        _buildStoredResumesSection(),
+      ],
+    );
+  }
+
+  Widget _buildStoredResumesSection() {
+    return Consumer<JobApplicationProvider>(
+      builder: (context, provider, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Or use stored resume from profile',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () async {
+                // Navigate to profile to pick stored resume
+                // In real app, you'd navigate to profile and return with selected resume
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Profile resume picker - coming soon'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person),
+              label: const Text('Select from Profile'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[200],
+                foregroundColor: Colors.grey[800],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -306,26 +461,64 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
       child: SafeArea(
-        child: ElevatedButton(
-          onPressed: _submitApplication,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF30009C), // Dark purple
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Text(
-            'APPLY NOW',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+        child: Consumer<JobApplicationProvider>(
+          builder: (context, provider, _) {
+            return ElevatedButton(
+              onPressed:
+                  (_isApplying || provider.isLoading)
+                      ? null
+                      : _submitApplication,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF30009C),
+                disabledBackgroundColor: Colors.grey,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child:
+                  _isApplying || provider.isLoading
+                      ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'SUBMITTING...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      )
+                      : const Text(
+                        'APPLY NOW',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+            );
+          },
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _infoController.dispose();
+    super.dispose();
   }
 }
 

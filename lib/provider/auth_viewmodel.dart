@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:jobportal/api/api_response.dart';
 import 'package:jobportal/api/auth_api_service.dart';
+import 'package:jobportal/model.dart/user_profile.dart';
 import 'package:jobportal/provider/api_client.dart';
 import 'package:jobportal/services/local_storage_service.dart';
 
@@ -12,7 +12,7 @@ class AuthViewModel extends ChangeNotifier {
   final signupFormKey = GlobalKey<FormState>();
 
   // Login Screen Controllers
-  final TextEditingController loginMobileController = TextEditingController();
+  final TextEditingController loginEmailController = TextEditingController();
   final TextEditingController loginOtpController = TextEditingController();
   bool _rememberMeLogin = false;
 
@@ -22,36 +22,48 @@ class AuthViewModel extends ChangeNotifier {
   final TextEditingController signupMobileController = TextEditingController();
   bool _rememberMeSignup = false;
 
-  // OTP Screen Controller (for forgot password)
+  // OTP Screen Controller
   final TextEditingController otpVerificationController =
       TextEditingController();
 
+  // State Management
   bool _isLoading = false;
+  bool _isSendingOtp = false;
   String? _errorMessage;
-  int? _currentUserId;
+  String? _successMessage;
+
+  // User Data
+  UserProfile? _currentUser;
   String? _emailForVerification;
-  String? _currentUserEmail;
-  String? _currentUserEmail;
-  String _currentUserType = 'user';
+  bool _loginOtpSent = false;
 
-  // Timer for OTP resend
+  // OTP Timer
   Timer? _otpTimer;
-  int _otpResendSeconds = 30;
+  int _otpResendSeconds = 0;
 
-  // API Service
-  final AuthApiService _authApiService = ApiClient().authApiService;
+  // Services
+  late final AuthApiService _authApiService;
   final LocalStorageService _storageService = LocalStorageService();
 
+  // Getters
   bool get isLoading => _isLoading;
+  bool get isSendingOtp => _isSendingOtp;
   String? get errorMessage => _errorMessage;
-  bool get rememberMeLogin => _rememberMeLogin;
-  bool get rememberMeSignup => _rememberMeSignup;
-  int? get currentUserId => _currentUserId;
-  String? get currentUserEmail => _currentUserEmail;
-  String? get currentUserType => _currentUserType;
-  bool get isUserLoggedIn => _storageService.isLoggedIn();
+  String? get successMessage => _successMessage;
+  UserProfile? get currentUser => _currentUser;
   int get otpResendSeconds => _otpResendSeconds;
   bool get isOtpTimerActive => _otpTimer?.isActive ?? false;
+  bool get loginOtpSent => _loginOtpSent;
+  bool get rememberMeLogin => _rememberMeLogin;
+  bool get rememberMeSignup => _rememberMeSignup;
+  bool get isUserLoggedIn => _storageService.isLoggedIn();
+  String? get emailForVerification => _emailForVerification;
+
+  AuthViewModel() {
+    _authApiService = ApiClient().authApiService;
+  }
+
+  // ========== Private State Management Methods ==========
 
   void _setLoading(bool value) {
     if (_isLoading == value) return;
@@ -59,10 +71,31 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _setErrorMessage(String? message) {
-    _errorMessage = message;
+  void _setSendingOtp(bool value) {
+    if (_isSendingOtp == value) return;
+    _isSendingOtp = value;
     notifyListeners();
   }
+
+  void _setErrorMessage(String? message) {
+    _errorMessage = message;
+    _successMessage = null;
+    notifyListeners();
+  }
+
+  void _setSuccessMessage(String? message) {
+    _successMessage = message;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void _clearMessages() {
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+  }
+
+  // ========== Public State Management Methods ==========
 
   void toggleRememberMeLogin(bool? value) {
     _rememberMeLogin = value ?? false;
@@ -74,15 +107,22 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Initialize the viewmodel - should be called once at app startup
+  // ========== Authentication Methods ==========
+
+  /// Initialize the viewmodel - call this once at app startup
   Future<void> initializeAuth() async {
     try {
-      // Check if user was previously logged in
       if (_storageService.isLoggedIn()) {
-        _currentUserId = _storageService.getUserId();
-        _currentUserEmail = _storageService.getUserEmail();
-        _currentUserType = _storageService.getUserType() ?? 'user';
-        notifyListeners();
+        final userData = _storageService.getUserData();
+        if (userData != null) {
+          try {
+            _currentUser = UserProfile.fromJson(userData);
+            notifyListeners();
+          } catch (e) {
+            print('Error parsing user profile: $e');
+            await clearAuthData();
+          }
+        }
       }
     } catch (e) {
       print('Error initializing auth: $e');
@@ -90,226 +130,216 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   /// Send OTP for login
-  Future<void> sendLoginOtp(BuildContext context) async {
-    if (loginMobileController.text.isEmpty) {
-      _setErrorMessage("Please enter your email.");
+  Future<void> sendLoginOtp() async {
+    if (loginEmailController.text.trim().isEmpty) {
+      _setErrorMessage("Please enter your email address.");
       return;
     }
 
-    _setLoading(true);
-    _setErrorMessage(null);
+    _setSendingOtp(true);
+    _clearMessages();
 
     try {
       final response = await _authApiService.loginSendOtp({
-        'email': loginMobileController.text,
+        'email': loginEmailController.text.trim(),
       });
 
-      print('Login OTP Sent: ${response.message}');
-      _setErrorMessage(null);
-      notifyListeners();
+      _loginOtpSent = true;
+      _setSuccessMessage(response.message);
+      startOtpTimer();
     } on DioException catch (e) {
-      _handleError(e);
+      _handleDioError(e);
+    } catch (e) {
+      _setErrorMessage('An unexpected error occurred. Please try again.');
     } finally {
-      _setLoading(false);
+      _setSendingOtp(false);
     }
   }
 
   /// Verify login OTP and perform login
-  Future<void> login(BuildContext context) async {
-    // Validate the form
+  Future<bool> loginWithOtp(context) async {
     if (loginFormKey.currentState?.validate() != true) {
-      return;
+      return false;
     }
 
     _setLoading(true);
-    _setErrorMessage(null);
+    _clearMessages();
 
     try {
       final response = await _authApiService.loginVerifyOtp({
-        'email': loginMobileController.text,
-        'otp': loginOtpController.text,
+        'email': loginEmailController.text.trim(),
+        'otp': loginOtpController.text.trim(),
       });
+      // Save user data
+      _currentUser = response.user;
+      await _saveUserLocally(response.user);
+print('LoginResponse: $response');  
 
-      print('Login successful: ${response.message}');
-
-      // Save user data to local storage
-      final userData = response.user.toJson();
-      await _storageService.saveUserData(userData);
-
-      // Save specific user info
-      _currentUserId = response.user.id;
-      _currentUserEmail = response.user.email;
-      _currentUserType = response.user.userType;
-
-      await _storageService.saveUserId(response.user.id);
-      await _storageService.saveUserEmail(response.user.email);
-      await _storageService.saveUserName(response.user.fullName);
-      await _storageService.saveUserType(_currentUserType);
-
-      // Save remember me preference
+      // Handle remember me
       if (_rememberMeLogin) {
         await _storageService.setRememberMe(true);
-        await _storageService.setSavedEmail(loginMobileController.text);
+        await _storageService.setSavedEmail(loginEmailController.text.trim());
       }
 
-      // Set login status
-      await _storageService.setLoginStatus(true);
-
-      notifyListeners();
-
+      _setSuccessMessage('Login successful! Redirecting...');
       _clearLoginFields();
 
-      // Navigate to home screen
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      return true;
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        _setErrorMessage(
-          "The OTP you entered is incorrect. Please check and try again.",
-        );
+        _setErrorMessage('Invalid OTP. Please enter the correct OTP.');
       } else {
-        _handleError(e);
+        _handleDioError(e);
       }
+      return false;
+    } catch (e) {
+      print('Login error: $e');
+      _setErrorMessage('An unexpected error occurred. Please try again.');
+      return false;
     } finally {
       _setLoading(false);
     }
   }
 
   /// Send OTP for signup
-  Future<void> sendSignupOtp(BuildContext context) async {
-    // Validate the form
+  Future<void> sendSignupOtp() async {
     if (signupFormKey.currentState?.validate() != true) {
       return;
     }
 
-    _setLoading(true);
-    _setErrorMessage(null);
+    _setSendingOtp(true);
+    _clearMessages();
 
     try {
       final response = await _authApiService.signupSendOtp({
-        'email': signupEmailController.text,
-        'fullName': signupNameController.text,
-        'phoneNumber': signupMobileController.text,
+        'email': signupEmailController.text.trim(),
+        'fullName': signupNameController.text.trim(),
+        'phoneNumber': signupMobileController.text.trim(),
       });
 
-      print('Signup OTP Sent: ${response.message}');
-      _emailForVerification = signupEmailController.text;
-      _setErrorMessage(null);
-      startOtpTimer(); // Start the timer on initial send
-
-      // Navigate to OTP verification screen for signup
-      if (context.mounted) {
-        Navigator.pushNamed(
-          context,
-          '/otp',
-          // No longer need to pass arguments
-        );
-      }
+      _emailForVerification = signupEmailController.text.trim();
+      _setSuccessMessage(response.message);
+      startOtpTimer();
     } on DioException catch (e) {
-      _handleError(e);
+      if (e.response?.statusCode == 400) {
+        _setErrorMessage('Email already registered. Please login instead.');
+      } else {
+        _handleDioError(e);
+      }
+    } catch (e) {
+      _setErrorMessage('Failed to send OTP. Please try again.');
     } finally {
-      _setLoading(false);
+      _setSendingOtp(false);
     }
   }
 
   /// Resend OTP for signup
   Future<void> resendSignupOtp() async {
     if (_emailForVerification == null) {
-      _setErrorMessage("Email not found. Please go back and try again.");
+      _setErrorMessage('Email not found. Please go back and try again.');
       return;
     }
 
-    _setLoading(true);
-    _setErrorMessage(null);
+    _setSendingOtp(true);
+    _clearMessages();
 
     try {
       final response = await _authApiService.signupSendOtp({
         'email': _emailForVerification,
+        'fullName': signupNameController.text.trim(),
+        'phoneNumber': signupMobileController.text.trim(),
       });
 
-      print('Signup OTP Resent: ${response.message}');
-      startOtpTimer(); // Restart the timer
+      _setSuccessMessage(response.message);
+      startOtpTimer();
     } on DioException catch (e) {
-      _handleError(e);
+      _handleDioError(e);
     } finally {
-      _setLoading(false);
+      _setSendingOtp(false);
     }
   }
 
   /// Verify signup OTP and complete registration
-  Future<void> verifySignupOtp(BuildContext context) async {
+  Future<bool> verifySignupOtp() async {
     _otpTimer?.cancel();
     _setLoading(true);
-    _setErrorMessage(null);
+    _clearMessages();
 
     try {
       final response = await _authApiService.signupVerifyOtp({
         'email': _emailForVerification,
-        'otp': otpVerificationController.text,
+        'otp': otpVerificationController.text.trim(),
       });
 
-      print('Signup verified: ${response.message}');
+      // Save user data
+      _currentUser = response.user;
+      await _saveUserLocally(response.user);
 
-      // Save user data to local storage
-      final userData = response.user.toJson();
-      await _storageService.saveUserData(userData);
-
-      // Save specific user info
-      _currentUserId = response.user.id;
-      _currentUserEmail = response.user.email;
-      _currentUserType = response.user.userType;
-
-      await _storageService.saveUserId(response.user.id);
-      await _storageService.saveUserEmail(response.user.email);
-      await _storageService.saveUserName(response.user.fullName);
-      await _storageService.saveUserType(
-        _currentUserType,
-      ); // Save remember me preference
-      if (_rememberMeSignup && _emailForVerification != null) {
+      // Handle remember me
+      if (_rememberMeSignup) {
         await _storageService.setRememberMe(true);
-        await _storageService.setSavedEmail(signupEmailController.text);
+        await _storageService.setSavedEmail(_emailForVerification!);
       }
 
-      // Set login status
-      await _storageService.setLoginStatus(true);
-
-      notifyListeners();
-
+      _setSuccessMessage('Account created successfully!');
       _clearSignupFields();
-
-      // Navigate to home screen
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      return true;
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        _setErrorMessage(
-          "The OTP is incorrect or has expired. Please try again.",
-        );
+        _setErrorMessage('Invalid or expired OTP. Please try again.');
       } else {
-        _handleError(e);
+        _handleDioError(e);
       }
+      return false;
+    } catch (e) {
+      _setErrorMessage('An unexpected error occurred. Please try again.');
+      return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  void _handleError(DioException e) {
-    if (e.response != null && e.response?.data is Map) {
-      final errorResponse = ErrorResponse.fromJson(e.response!.data);
-      _setErrorMessage(errorResponse.error);
-    } else {
-      _setErrorMessage(
-        'A network error occurred. Please check your connection and try again.',
-      );
+  // ========== Helper Methods ==========
+
+  Future<void> _saveUserLocally(UserProfile user) async {
+    try {
+      await _storageService.saveUserData(user.toJson());
+      await _storageService.saveUserId(user.id); // id is non-nullable
+      if (user.email != null) await _storageService.saveUserEmail(user.email!);
+      if (user.fullName != null) await _storageService.saveUserName(user.fullName!);
+      await _storageService.saveUserType(user.userType ?? 'user');
+      await _storageService.setLoginStatus(true);
+    } catch (e) {
+      print('Error saving user data locally: $e');
     }
   }
 
+  void _handleDioError(DioException e) {
+    String message = 'An error occurred. Please check your connection.';
+
+    if (e.response != null) {
+      if (e.response?.statusCode == 400) {
+        message = e.response?.data['error'] ?? message;
+      } else if (e.response?.statusCode == 401) {
+        message = 'Unauthorized. Please try again.';
+      } else if (e.response?.statusCode == 500) {
+        message = 'Server error. Please try again later.';
+      } else if (e.response?.statusCode == 429) {
+        message = 'Too many attempts. Please wait before trying again.';
+      }
+    } else if (e.type == DioExceptionType.connectionTimeout) {
+      message = 'Connection timeout. Please check your internet.';
+    } else if (e.type == DioExceptionType.receiveTimeout) {
+      message = 'Request timeout. Please try again.';
+    }
+
+    _setErrorMessage(message);
+  }
+
   void _clearLoginFields() {
-    loginMobileController.clear();
+    loginEmailController.clear();
     loginOtpController.clear();
-    _emailForVerification = null;
+    _loginOtpSent = false;
   }
 
   void _clearSignupFields() {
@@ -320,10 +350,9 @@ class AuthViewModel extends ChangeNotifier {
     _emailForVerification = null;
   }
 
-  // --- OTP Timer Methods ---
   void startOtpTimer() {
-    _otpTimer?.cancel(); // Cancel any existing timer
-    _otpResendSeconds = 30;
+    _otpTimer?.cancel();
+    _otpResendSeconds = 60;
     _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_otpResendSeconds > 0) {
         _otpResendSeconds--;
@@ -334,44 +363,69 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  // --- Validators ---
-  String? validateMobile(String? value) {
+  Future<void> clearAuthData() async {
+    _otpTimer?.cancel();
+    await _storageService.clearAllData();
+    _currentUser = null;
+    _clearLoginFields();
+    _clearSignupFields();
+    _clearMessages();
+    notifyListeners();
+  }
+
+  // ========== Validators ==========
+
+  String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Mobile number is required.';
+      return 'Email is required';
     }
-    if (value.length != 10) {
-      return 'Enter a valid 10-digit mobile number.';
+    final emailRegex =
+        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Enter a valid email address';
     }
     return null;
   }
 
   String? validateOtp(String? value) {
     if (value == null || value.isEmpty) {
-      return 'OTP is required.';
+      return 'OTP is required';
+    }
+    if (value.length != 6) {
+      return 'OTP must be 6 digits';
+    }
+    if (!value.isNumericOnly) {
+      return 'OTP must contain only numbers';
     }
     return null;
   }
 
   String? validateName(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Full name is required.';
+      return 'Full name is required';
+    }
+    if (value.length < 3) {
+      return 'Name must be at least 3 characters';
     }
     return null;
   }
 
-  String? validateEmail(String? value) {
-    if (value == null ||
-        value.isEmpty ||
-        !value.contains('@') ||
-        !value.contains('.')) {
-      return 'Enter a valid email address.';
+  String? validateMobile(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Mobile number is required';
+    }
+    if (value.length != 10) {
+      return 'Enter a valid 10-digit mobile number';
+    }
+    if (!value.isNumericOnly) {
+      return 'Mobile number must contain only digits';
     }
     return null;
   }
 
   @override
   void dispose() {
-    loginMobileController.dispose();
+    loginEmailController.dispose();
     loginOtpController.dispose();
     signupNameController.dispose();
     signupEmailController.dispose();
@@ -380,4 +434,8 @@ class AuthViewModel extends ChangeNotifier {
     _otpTimer?.cancel();
     super.dispose();
   }
+}
+
+extension StringExtension on String {
+  bool get isNumericOnly => RegExp(r'^[0-9]+$').hasMatch(this);
 }

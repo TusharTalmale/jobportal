@@ -20,7 +20,10 @@ abstract class CompanyApiService {
   @POST(ApiConstants.companies)
   @MultiPart()
   Future<Company> createCompany(
-    @Part() Map<String, dynamic> data, {
+    @Part(name: "name") String name,
+    @Part(name: "industry") String industry,
+    @Part(name: "description") String description,
+    @Part(name: "website") String website, {
     @Part(name: "companyLogo") List<MultipartFile>? companyLogo,
     @Part(name: "company_gallery") List<MultipartFile>? companyGallery,
   });
@@ -29,7 +32,10 @@ abstract class CompanyApiService {
   @MultiPart()
   Future<Company> updateCompany(
     @Path("id") int id,
-    @Part() Map<String, dynamic> data, {
+    @Part(name: "name") String name,
+    @Part(name: "industry") String industry,
+    @Part(name: "description") String description,
+    @Part(name: "website") String website, {
     @Part(name: "companyLogo") List<MultipartFile>? companyLogo,
     @Part(name: "company_gallery") List<MultipartFile>? companyGallery,
   });

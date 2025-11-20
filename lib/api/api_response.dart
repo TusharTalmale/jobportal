@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:jobportal/model.dart/user_profile.dart';
 
+
 part 'api_response.g.dart';
 
 /// A generic response for messages like "OTP sent".
@@ -16,13 +17,16 @@ class MessageResponse {
   Map<String, dynamic> toJson() => _$MessageResponseToJson(this);
 }
 
-/// Response for successful login/signup verification which includes user data.
+/// Auth response from login/signup verify endpoints
 @JsonSerializable()
 class AuthResponse {
   final String message;
   final UserProfile user;
 
-  AuthResponse({required this.message, required this.user});
+  AuthResponse({
+    required this.message,
+    required this.user,
+  });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) =>
       _$AuthResponseFromJson(json);

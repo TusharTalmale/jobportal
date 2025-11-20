@@ -5,6 +5,8 @@ import 'package:jobportal/api/company_api_service.dart';
 import 'package:jobportal/api/job_api_service.dart';
 import 'package:jobportal/api/post_api_service.dart';
 import 'package:jobportal/api/chat_api_service.dart';
+import 'package:jobportal/api/profile_api_service.dart';
+import 'package:jobportal/api/job_application_api_service.dart';
 
 /// A singleton class to manage the Dio instance and API services.
 /// This ensures that we have a single point of configuration for networking.
@@ -53,4 +55,11 @@ class ApiClient {
 
   // Getter for the chat API service.
   ChatApiService get chatApiService => ChatApiService(_dio);
+
+  // Getter for the profile API service.
+  ProfileApiService get profileApiService => ProfileApiService(_dio);
+
+  // Getter for the job application API service.
+  JobApplicationApiService get jobApplicationApiService =>
+      JobApplicationApiService(_dio);
 }

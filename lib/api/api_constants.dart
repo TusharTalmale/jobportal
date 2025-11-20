@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = "http://10.98.73.250:3000";
+  static const String baseUrl = "http://10.14.173.250:3000";
 
   // Auth Endpoints
   static const String signupSendOtp = "/api/signup/send-otp";
@@ -33,4 +33,19 @@ class ApiConstants {
       "/api/chat"; // GET with ?userId, POST to find/create
   static const String chatMessages = "/api/chat/{conversationId}/messages";
   static const String chatMarkRead = "/api/chat/{conversationId}/messages/read";
+
+  // User Profile Endpoints
+  static const String users = "/api/User";
+  static const String userById = "/api/User/{id}";
+
+  // Job Application Endpoints
+  static const String applyJob = "/api/applyJob";
+  static const String applyJobById = "/api/applyJob/{id}";
+  static const String applyJobStatus = "/api/applyJob/{id}/status";
+  static const String applyJobWithdraw = "/api/applyJob/{id}/withdraw";
+  static const String applyJobComment = "/api/applyJob/{id}/comment";
+  static const String applyJobCommentStatus =
+      "/api/applyJob/{id}/comment/{commentId}/status";
+  static const String applyJobShareProfile = "/api/applyJob/{id}/shareProfile";
+  static const String applyJobReview = "/api/applyJob/{id}/review";
 }

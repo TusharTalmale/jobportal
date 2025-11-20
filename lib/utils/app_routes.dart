@@ -1,4 +1,5 @@
 class AppRoutes {
+  static const String authCheck = '/';
   static const String main = '/main';
   static const String network = '/network';
   static const String findJob = '/find-job';

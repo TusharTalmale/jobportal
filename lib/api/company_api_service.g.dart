@@ -10,7 +10,7 @@ part of 'company_api_service.dart';
 
 class _CompanyApiService implements CompanyApiService {
   _CompanyApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.98.73.250:3000';
+    baseUrl ??= 'http://10.14.173.250:3000';
   }
 
   final Dio _dio;
@@ -78,7 +78,10 @@ class _CompanyApiService implements CompanyApiService {
 
   @override
   Future<Company> createCompany(
-    Map<String, dynamic> data, {
+    String name,
+    String industry,
+    String description,
+    String website, {
     List<MultipartFile>? companyLogo,
     List<MultipartFile>? companyGallery,
   }) async {
@@ -87,7 +90,10 @@ class _CompanyApiService implements CompanyApiService {
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
+    _data.fields.add(MapEntry('name', name));
+    _data.fields.add(MapEntry('industry', industry));
+    _data.fields.add(MapEntry('description', description));
+    _data.fields.add(MapEntry('website', website));
     if (companyLogo != null) {
       _data.files.addAll(companyLogo.map((i) => MapEntry('companyLogo', i)));
     }
@@ -125,7 +131,10 @@ class _CompanyApiService implements CompanyApiService {
   @override
   Future<Company> updateCompany(
     int id,
-    Map<String, dynamic> data, {
+    String name,
+    String industry,
+    String description,
+    String website, {
     List<MultipartFile>? companyLogo,
     List<MultipartFile>? companyGallery,
   }) async {
@@ -134,7 +143,10 @@ class _CompanyApiService implements CompanyApiService {
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
+    _data.fields.add(MapEntry('name', name));
+    _data.fields.add(MapEntry('industry', industry));
+    _data.fields.add(MapEntry('description', description));
+    _data.fields.add(MapEntry('website', website));
     if (companyLogo != null) {
       _data.files.addAll(companyLogo.map((i) => MapEntry('companyLogo', i)));
     }

@@ -70,7 +70,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                 provider.updateEditingBasicInfo(email: value),
                       ),
                       const SizedBox(height: 16),
-                      _buildPhoneField(provider, basicInfo.phoneNumber),
+                      _buildPhoneField(provider, basicInfo.phoneNumber ?? ''),
                       const SizedBox(height: 16),
                       TextFormField(
                         initialValue: basicInfo.location,
@@ -84,7 +84,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             ),
                       ),
                       const SizedBox(height: 16),
-                      _buildGenderSelector(context, provider, basicInfo.gender),
+                      _buildGenderSelector(context, provider, basicInfo.gender ?? ''),
                       const SizedBox(height: 24),
                       CustomButton(
                         label: 'SAVE',

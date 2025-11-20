@@ -10,7 +10,7 @@ part of 'chat_api_service.dart';
 
 class _ChatApiService implements ChatApiService {
   _ChatApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.98.73.250:3000';
+    baseUrl ??= 'http://10.14.173.250:3000';
   }
 
   final Dio _dio;
@@ -20,7 +20,9 @@ class _ChatApiService implements ChatApiService {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<Conversation> findOrCreateConversation(Map<String, int> body) async {
+  Future<Conversation> findOrCreateConversation(
+    Map<String, dynamic> body,
+  ) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -164,7 +166,6 @@ class _ChatApiService implements ChatApiService {
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
     late Map<String, dynamic> _value;
     try {
-      //ignore this code generation issue
       // _value = _result.data!.map(
       //   (k, dynamic v) =>
       //       MapEntry(k, dynamic.fromJson(v as Map<String, dynamic>)),

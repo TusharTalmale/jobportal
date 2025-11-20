@@ -1,47 +1,100 @@
 import 'package:json_annotation/json_annotation.dart';
-
 part 'user_profile.g.dart';
+
+class ImageUrlConverter implements JsonConverter<String?, dynamic> {
+  const ImageUrlConverter();
+
+  @override
+  String? fromJson(dynamic json) {
+    if (json is Map<String, dynamic> && json.containsKey('url')) {
+      return json['url'] as String?;
+    }
+    return json as String?;
+  }
+
+  @override
+  dynamic toJson(String? object) => object;
+}
+
 
 @JsonSerializable(explicitToJson: true)
 class UserProfile {
   final int id;
-  String fullName;
-  String location;
-  String email;
-  String phoneNumber;
-  String countryCode;
+
+  @JsonKey(name: 'fullName')
+  String? fullName;
+
+  @JsonKey(name: 'location')
+  String? location;
+
+  @JsonKey(name: 'email')
+  String? email;
+
+  @JsonKey(name: 'phoneNumber')
+  String? phoneNumber;
+
+  @JsonKey(name: 'image_url')
+  @ImageUrlConverter()
   String? imageUrl;
-  String gender;
+
+  @JsonKey(name: 'gender')
+  String? gender;
+
+  @JsonKey(name: 'dateOfBirth')
   String? dateOfBirth;
-  String aboutMe;
-  String userType;
-  List<WorkExperience> workExperiences;
-  List<Education> educations;
-  List<Language> languages;
-  List<String> skills;
-  List<Appreciation> appreciations;
-  List<Resume> resumes;
+
+  @JsonKey(name: 'aboutMe')
+  String? aboutMe;
+
+  // LIST FIELDS (your main issue)
+  @JsonKey(name: 'workExperience')
+  List<WorkExperience>? workExperiences;
+
+  @JsonKey(name: 'education')
+  List<Education>? educations;
+
+  @JsonKey(name: 'languages')
+  List<Language>? languages;
+
+  @JsonKey(name: 'skills')
+  List<String>? skills;
+
+  @JsonKey(name: 'appreciations')
+  List<Appreciation>? appreciations;
+
+  @JsonKey(name: 'resume')
+  List<Resume>? resumes;
+
+  final String? userType;
+
   int followers;
   int following;
+  final bool isVerified;
+  final String? authProvider;
+  final String? createdAt;
+  final String? updatedAt;
 
   UserProfile({
-    required this.id, // Changed to int
-    required this.fullName,
-    required this.location,
-    required this.email,
-    required this.phoneNumber,
-    required this.countryCode,
+    required this.id,
+    this.fullName,
+    this.location,
+    this.email,
+    this.phoneNumber,
+    this.isVerified = false,
+    this.authProvider,
+    this.createdAt,
+    this.updatedAt,
     this.imageUrl,
-    this.gender = 'male',
+    this.gender,
     this.dateOfBirth,
-    this.aboutMe = '',
-    this.userType = 'user',
-    this.workExperiences = const [],
-    this.educations = const [],
-    this.languages = const [],
-    this.skills = const [],
-    this.appreciations = const [],
-    this.resumes = const [],
+    this.aboutMe,
+    this.userType,
+    this.workExperiences,
+    this.educations,
+    this.languages,
+    this.skills,
+    this.appreciations,
+    this.resumes,
     this.followers = 0,
     this.following = 0,
   });
@@ -52,12 +105,11 @@ class UserProfile {
   Map<String, dynamic> toJson() => _$UserProfileToJson(this);
 
   UserProfile copyWith({
-    String? id,
+    int? id,
     String? fullName,
     String? location,
     String? email,
     String? phoneNumber,
-    String? countryCode,
     String? imageUrl,
     String? gender,
     String? dateOfBirth,
@@ -71,14 +123,17 @@ class UserProfile {
     List<Resume>? resumes,
     int? followers,
     int? following,
+    bool? isVerified,
+    String? authProvider,
+    String? createdAt,
+    String? updatedAt,
   }) {
     return UserProfile(
-      id: this.id,
+      id: id ?? this.id,
       fullName: fullName ?? this.fullName,
       location: location ?? this.location,
       email: email ?? this.email,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      countryCode: countryCode ?? this.countryCode,
       imageUrl: imageUrl ?? this.imageUrl,
       gender: gender ?? this.gender,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
@@ -92,6 +147,10 @@ class UserProfile {
       resumes: resumes ?? this.resumes,
       followers: followers ?? this.followers,
       following: following ?? this.following,
+      isVerified: isVerified ?? this.isVerified,
+      authProvider: authProvider ?? this.authProvider,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -293,90 +352,6 @@ class Resume {
       fileName: fileName ?? this.fileName,
       size: size ?? this.size,
       uploadDate: uploadDate ?? this.uploadDate,
-    );
-  }
-}
-
-// ============= MOCK DATA =============
-class MockProfileData {
-  static UserProfile getMockUserProfile() {
-    return UserProfile(
-      id: 1,
-      fullName: 'Brandone Louis',
-      location: 'California, United states',
-      email: 'brandonelouis@gmail.com',
-      phoneNumber: '619 3456 7890',
-      countryCode: '+1',
-      gender: 'male',
-      imageUrl: null,
-      dateOfBirth: '1995-08-20',
-      aboutMe:
-          'Passionate UI/UX Designer with 5+ years of experience creating beautiful and functional digital experiences.',
-      followers: 120000,
-      following: 23000,
-      workExperiences: [
-        WorkExperience(
-          id: '1',
-          jobTitle: 'Manager',
-          company: 'Amazon Inc',
-          startDate: DateTime(2015, 1),
-          endDate: DateTime(2022, 2),
-          isCurrentPosition: false,
-          description:
-              'Managed cross-functional teams and led product initiatives.',
-        ),
-      ],
-      educations: [
-        Education(
-          id: '1',
-          levelOfEducation: 'Bachelor of Information Technology',
-          institutionName: 'University of Oxford',
-          fieldOfStudy: 'Information Technology',
-          startDate: DateTime(2010, 9),
-          endDate: DateTime(2013, 8),
-          isCurrentPosition: false,
-        ),
-      ],
-      languages: [
-        Language(
-          id: '1',
-          name: 'Indonesian',
-          oralLevel: 10,
-          writtenLevel: 10,
-          isFirstLanguage: true,
-        ),
-        Language(
-          id: '2',
-          name: 'English',
-          oralLevel: 8,
-          writtenLevel: 8,
-          isFirstLanguage: false,
-        ),
-      ],
-      skills: [
-        'Leadership',
-        'Teamwork',
-        'Visioner',
-        'Target oriented',
-        'Consistent',
-        'Good communication skills',
-      ],
-      appreciations: [
-        Appreciation(
-          id: '1',
-          title: 'Young Scientist',
-          organization: 'Wireless Symposium (RWS)',
-          date: DateTime(2014),
-        ),
-      ],
-      resumes: [
-        Resume(
-          id: '1',
-          fileName: 'Jamet kudasi - CV - UI/UX Designer',
-          size: '867 Kb',
-          uploadDate: DateTime(2022, 2, 14, 11, 30),
-        ),
-      ],
     );
   }
 }

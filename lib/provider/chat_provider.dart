@@ -40,6 +40,11 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> init({required int userId, String type = 'user'}) async {
+    // Prevent re-initialization if the user ID is already set and matches.
+    if (this.userId == userId) {
+      return;
+    }
+
     this.userId = userId;
     userType = type;
     await fetchConversations();
@@ -70,7 +75,10 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> fetchConversations() async {
-    if (userId == null) return;
+    if (userId == null) {
+      if (kDebugMode) print('Cannot fetch conversations: userId is null');
+      return;
+    }
     try {
       final list = await _api.chatApiService.getUserConversations(
         userId: userId!,
@@ -79,6 +87,7 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print('fetchConversations error: $e');
+      rethrow;
     }
   }
 
@@ -114,17 +123,23 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<Conversation> startConversation(int companyId) async {
-    final conv = await _api.chatApiService.findOrCreateConversation({
-      'userId': userId ?? 0,
-      'companyId': companyId,
-    });
-    // ensure in-memory list updated
-    final exists = conversations.any((c) => c.id == conv.id);
-    if (!exists) conversations.insert(0, conv);
-    // join room
-    _socketManager.joinConversation(conv.id);
-    notifyListeners();
-    return conv;
+    try {
+      final conv = await _api.chatApiService.findOrCreateConversation(
+        <String, dynamic>{'userId': userId ?? 0, 'companyId': companyId},
+      );
+      // ensure in-memory list updated
+      final exists = conversations.any((c) => c.id == conv.id);
+      if (!exists) {
+        conversations.insert(0, conv);
+      }
+      // join room
+      _socketManager.joinConversation(conv.id);
+      notifyListeners();
+      return conv;
+    } catch (e) {
+      if (kDebugMode) print('startConversation error: $e');
+      rethrow;
+    }
   }
 
   /// Remove a conversation locally (used by Inbox Dismissible)
@@ -143,16 +158,22 @@ class ChatProvider extends ChangeNotifier {
         conversationId: conversationId,
         messagePayload: payload,
       );
+
+      // Add message to local cache
       messages.putIfAbsent(conversationId, () => []);
       messages[conversationId]!.insert(0, msg);
+
+      // Move conversation to top
       final idx = conversations.indexWhere((c) => c.id == conversationId);
       if (idx != -1) {
         final conv = conversations.removeAt(idx);
         conversations.insert(0, conv);
       }
+
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print('sendMessage error: $e');
+      rethrow;
     }
   }
 
@@ -165,17 +186,22 @@ class ChatProvider extends ChangeNotifier {
         conversationId: conversationId,
         body: {'recipient': recipient},
       );
-      // local update of readAt is intentionally minimal here
       notifyListeners();
 
-      // Parse count from the response map
-      if (response['updatedCount'] is int) {
-        return response['updatedCount'];
+      // Parse count from the response map - backend returns { message: "X messages marked as read." }
+      if (response['updatedCount'] != null) {
+        final count = response['updatedCount'];
+        if (count is int) return count;
+        if (count is String) return int.tryParse(count) ?? 0;
       }
+
+      // Fallback: parse from message string
       if (response['message'] is String) {
-        final match = RegExp(r"(\d+)").firstMatch(response['message']);
-        if (match != null) return int.tryParse(match.group(0)!) ?? 0;
+        final message = response['message'] as String;
+        final match = RegExp(r'(\d+)').firstMatch(message);
+        if (match != null) return int.tryParse(match.group(1)!) ?? 0;
       }
+
       return 0;
     } catch (e) {
       if (kDebugMode) print('markAsRead error: $e');

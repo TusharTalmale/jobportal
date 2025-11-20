@@ -13,28 +13,21 @@ class AboutMeScreen extends StatefulWidget {
 }
 
 class _AboutMeScreenState extends State<AboutMeScreen> {
-  late final ProfileProvider _profileProvider;
-  late final TextEditingController _aboutMeController;
+  late final ProfileProvider _provider;
+  late final TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
-    _profileProvider = context.read<ProfileProvider>();
-    _aboutMeController = TextEditingController(
-      text: _profileProvider.editingAboutMe,
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _profileProvider.initializeAboutMeForm();
-      // Sync controller with provider state after initialization
-      _aboutMeController.text = _profileProvider.editingAboutMe;
-    });
+    _provider = context.read<ProfileProvider>();
+    _provider.initializeAboutMeForm();
+    _controller = TextEditingController(text: _provider.editingAboutMe);
   }
 
   @override
   void dispose() {
-    _profileProvider.disposeAboutMeForm();
-    _aboutMeController.dispose();
+    _provider.disposeAboutMeForm();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -43,41 +36,28 @@ class _AboutMeScreenState extends State<AboutMeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('About me'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: const BackButton(),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextFormField(
-              controller: _aboutMeController,
-              onChanged:
-                  (value) => _profileProvider.updateEditingAboutMe(value),
-              decoration: const InputDecoration(
-                labelText: 'Tell me about you',
-                hintText: 'Write a brief description about yourself...',
-              ),
+              controller: _controller,
               maxLines: 6,
+              decoration: const InputDecoration(labelText: 'Tell me about you'),
+              onChanged: _provider.updateEditingAboutMe,
             ),
             const SizedBox(height: 24),
-            CustomButton(label: 'SAVE', onPressed: () => _saveAboutMe(context)),
+            CustomButton(
+              label: 'SAVE',
+              onPressed: () {
+                _provider.saveAboutMe();
+                Navigator.pop(context);
+              },
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _saveAboutMe(BuildContext context) {
-    final provider = context.read<ProfileProvider>();
-    provider.saveAboutMe();
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('About saved successfully!'),
-        backgroundColor: AppColors.successColor,
       ),
     );
   }

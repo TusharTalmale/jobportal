@@ -145,7 +145,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
           }
 
           final UserProfile profile = provider.userProfile!;
-          final List<Resume> resumes = profile.resumes;
+          final List<Resume> resumes = profile.resumes ?? [];
 
           return CustomScrollView(
             slivers: <Widget>[
@@ -159,7 +159,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileSectionCard(
                       title: 'About Me',
                       iconData: Icons.person_outline,
-                      isEmpty: profile.aboutMe.isEmpty,
+                      isEmpty: profile.aboutMe == null || profile.aboutMe!.isEmpty,
                       editModeOnContent: true,
                       onAdd:
                           () => Navigator.pushNamed(context, AppRoutes.aboutMe),
@@ -192,7 +192,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  profile.aboutMe,
+                                  profile.aboutMe ?? '',
                                   maxLines:
                                       _isAboutMeExpanded ? null : _maxLines,
                                   overflow:
@@ -218,7 +218,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileListSection<WorkExperience>(
                       title: 'Work Experience',
                       iconData: Icons.work_outline,
-                      items: profile.workExperiences,
+                      items: profile.workExperiences ?? [],
                       emptyMessage: 'No work experience added yet.',
                       onAdd:
                           () => Navigator.pushNamed(
@@ -294,7 +294,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileListSection<Education>(
                       title: 'Education',
                       iconData: Icons.school_outlined,
-                      items: profile.educations,
+                      items: profile.educations ?? [],
                       emptyMessage: 'No education added yet.',
                       onAdd:
                           () =>
@@ -367,14 +367,14 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileSectionCard(
                       title: 'Skills',
                       iconData: Icons.star_outline,
-                      isEmpty: profile.skills.isEmpty,
+                      isEmpty: profile.skills?.isEmpty ?? true,
                       editModeOnContent: true,
                       onAdd:
                           () => Navigator.pushNamed(context, AppRoutes.skills),
                       onEdit:
                           () => Navigator.pushNamed(context, AppRoutes.skills),
                       child:
-                          profile.skills.isEmpty
+                          (profile.skills?.isEmpty ?? true)
                               ? const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(24.0),
@@ -385,7 +385,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                                 spacing: 8,
                                 runSpacing: 8,
                                 children:
-                                    profile.skills
+                                    (profile.skills ?? [])
                                         .map(
                                           (skill) => Container(
                                             padding: const EdgeInsets.symmetric(
@@ -417,7 +417,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileListSection<Language>(
                       title: 'Languages',
                       iconData: Icons.language_outlined,
-                      items: profile.languages,
+                      items: profile.languages ?? [],
                       emptyMessage: 'No languages added yet.',
                       onAdd:
                           () =>
@@ -528,7 +528,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen>
                     ProfileListSection<Appreciation>(
                       title: 'Appreciations',
                       iconData: Icons.favorite_border,
-                      items: profile.appreciations,
+                      items: profile.appreciations ?? [],
                       emptyMessage: 'No appreciations added yet.',
                       onAdd:
                           () => Navigator.pushNamed(

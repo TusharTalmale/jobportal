@@ -20,7 +20,12 @@ abstract class JobApiService {
   @POST(ApiConstants.jobs)
   @MultiPart()
   Future<Job> createJob(
-    @Part() Map<String, dynamic> data, {
+    @Part(name: "title") String title,
+    @Part(name: "description") String description,
+    @Part(name: "companyId") int companyId,
+    @Part(name: "location") String location,
+    @Part(name: "type") String type,
+    @Part(name: "salary") double salary, {
     @Part(name: "resumeFile") List<MultipartFile>? resumeFile,
   });
 
@@ -28,7 +33,12 @@ abstract class JobApiService {
   @MultiPart()
   Future<Job> updateJob(
     @Path("id") int id,
-    @Part() Map<String, dynamic> data, {
+    @Part(name: "title") String title,
+    @Part(name: "description") String description,
+    @Part(name: "companyId") int companyId,
+    @Part(name: "location") String location,
+    @Part(name: "type") String type,
+    @Part(name: "salary") double salary, {
     @Part(name: "resumeFile") List<MultipartFile>? resumeFile,
   });
 

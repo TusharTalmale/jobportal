@@ -24,19 +24,9 @@ class _WorkExperienceScreenWrapperState
   void initState() {
     super.initState();
     _profileProvider = context.read<ProfileProvider>();
-    final workExperience = _profileProvider.getWorkExperienceForEdit(
-      widget.index,
-    );
-
-    _jobTitleController = TextEditingController(
-      text: workExperience?.jobTitle ?? '',
-    );
-    _companyController = TextEditingController(
-      text: workExperience?.company ?? '',
-    );
-    _descriptionController = TextEditingController(
-      text: workExperience?.description ?? '',
-    );
+    _jobTitleController = TextEditingController();
+    _companyController = TextEditingController();
+    _descriptionController = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _profileProvider.initializeWorkExperienceForm(widget.index);

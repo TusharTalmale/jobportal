@@ -10,7 +10,7 @@ part of 'post_api_service.dart';
 
 class _PostApiService implements PostApiService {
   _PostApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.98.73.250:3000';
+    baseUrl ??= 'http://10.14.173.250:3000';
   }
 
   final Dio _dio;

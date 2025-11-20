@@ -94,7 +94,7 @@ class ProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      profile.fullName,
+                      profile.fullName ?? 'No Name',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -103,7 +103,7 @@ class ProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      profile.location,
+                      profile.location ?? 'No Location',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 14,
@@ -141,7 +141,7 @@ class ProfileHeader extends StatelessWidget {
                               ),
                             ),
                             _buildFollowerStat(
-                              '${profile.workExperiences.length}',
+                              '${profile.workExperiences?.length ?? 0}',
                               'Experience',
                             ),
                           ],

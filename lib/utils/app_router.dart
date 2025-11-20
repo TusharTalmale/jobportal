@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/screens/auth/login_screen.dart';
 import 'package:jobportal/model.dart/job.dart';
-import 'package:jobportal/screens/auth/onboarding_screen.dart';
 import 'package:jobportal/screens/auth/otp_screen.dart';
 import 'package:jobportal/screens/auth/signup_screen.dart';
 import 'package:jobportal/screens/conversation/inbox_screen.dart';
@@ -24,20 +23,23 @@ import 'package:jobportal/screens/saved_job.dart';
 import 'package:jobportal/utils/app_routes.dart';
 import 'package:jobportal/main.dart';
 
+import '../screens/auth/auth_check_screen.dart';
+
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+            case AppRoutes.authCheck:
+        return MaterialPageRoute(builder: (_) => const AuthCheckScreen());
       // Static routes (no arguments)
       case AppRoutes.main:
         return MaterialPageRoute(builder: (_) => const MainScreen());
-      case AppRoutes.onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+     
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case AppRoutes.signup:
         return MaterialPageRoute(builder: (_) => const SignupScreen());
       case AppRoutes.otp:
-        return MaterialPageRoute(builder: (_) => const OtpScreen());
+        return MaterialPageRoute(builder: (_) => const OtpVerificationScreen());
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeContent());
       case AppRoutes.profile:

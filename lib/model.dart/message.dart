@@ -3,9 +3,29 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'message.g.dart';
 
-enum MessageSender { user, company }
+@JsonEnum(valueField: 'value')
+enum MessageSender {
+  @JsonValue('user')
+  user('user'),
+  @JsonValue('company')
+  company('company');
 
-enum MessageType { text, file, job }
+  final String value;
+  const MessageSender(this.value);
+}
+
+@JsonEnum(valueField: 'value')
+enum MessageType {
+  @JsonValue('text')
+  text('text'),
+  @JsonValue('file')
+  file('file'),
+  @JsonValue('job')
+  job('job');
+
+  final String value;
+  const MessageType(this.value);
+}
 
 @JsonSerializable(explicitToJson: true)
 class Message {

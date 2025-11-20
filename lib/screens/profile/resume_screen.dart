@@ -1,5 +1,6 @@
-
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:jobportal/provider/profile_provider.dart';
 import 'package:jobportal/model.dart/user_profile.dart';
 import 'package:jobportal/utils/appconstants.dart';
@@ -31,7 +32,8 @@ class _ResumeScreenState extends State<ResumeScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                if (provider.profile.resumes.isEmpty)
+                // Use null-aware operator and provide a default empty list
+                if (provider.profile?.resumes?.isEmpty ?? true)
                   Column(
                     children: [
                       GestureDetector(
@@ -81,9 +83,9 @@ class _ResumeScreenState extends State<ResumeScreen> {
                 else
                   ListView.builder(
                     shrinkWrap: true,
-                    itemCount: provider.profile.resumes.length,
+                    itemCount: provider.profile?.resumes?.length ?? 0,
                     itemBuilder: (context, index) {
-                      final resume = provider.profile.resumes[index];
+                      final resume = provider.profile!.resumes![index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
@@ -139,7 +141,7 @@ class _ResumeScreenState extends State<ResumeScreen> {
                     },
                   ),
                 const SizedBox(height: 24),
-                if (provider.profile.resumes.isEmpty)
+                if (provider.profile?.resumes?.isEmpty ?? true)
                   CustomButton(
                     label: 'SAVE',
                     onPressed: () => Navigator.pop(context),
@@ -157,13 +159,44 @@ class _ResumeScreenState extends State<ResumeScreen> {
     );
   }
 
-  void _pickResume() {
-    final newResume = Resume(
+  Future<void> _pickResume() async {
+    final provider = context.read<ProfileProvider>();
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+      );
+
+      if (result == null) return;
+
+      File file = File(result.files.single.path!);
+
+      // Size check
+      final sizeMB = (await file.length()) / (1024 * 1024);
+      if (sizeMB > 5) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File size cannot exceed 5 MB')),
+        );
+        return;
+      }
+
+      // Set file for provider (IMPORTANT!)
+      provider.setNewResumeFile(file);
+
+      // Local representation
+      final resume = Resume(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        fileName: 'New_Resume_${DateTime.now().second}.pdf',
-        size: '1.2 MB',
-        uploadDate: DateTime.now());
-    Provider.of<ProfileProvider>(context, listen: false).addResume(newResume);
+        fileName: result.files.single.name,
+        size: '${sizeMB.toStringAsFixed(2)} MB',
+        uploadDate: DateTime.now(),
+      );
+
+      // Add into list
+      provider.addResume(resume);
+    } catch (e) {
+      // Handle any errors from file picking
+      print("Error picking resume: $e");
+    }
   }
 
   void _removeResume(String resumeId) {

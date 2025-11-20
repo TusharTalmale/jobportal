@@ -10,7 +10,7 @@ part of 'job_api_service.dart';
 
 class _JobApiService implements JobApiService {
   _JobApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.98.73.250:3000';
+    baseUrl ??= 'http://10.14.173.250:3000';
   }
 
   final Dio _dio;
@@ -78,7 +78,12 @@ class _JobApiService implements JobApiService {
 
   @override
   Future<Job> createJob(
-    Map<String, dynamic> data, {
+    String title,
+    String description,
+    int companyId,
+    String location,
+    String type,
+    double salary, {
     List<MultipartFile>? resumeFile,
   }) async {
     final _extra = <String, dynamic>{};
@@ -86,7 +91,12 @@ class _JobApiService implements JobApiService {
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
+    _data.fields.add(MapEntry('title', title));
+    _data.fields.add(MapEntry('description', description));
+    _data.fields.add(MapEntry('companyId', companyId.toString()));
+    _data.fields.add(MapEntry('location', location));
+    _data.fields.add(MapEntry('type', type));
+    _data.fields.add(MapEntry('salary', salary.toString()));
     if (resumeFile != null) {
       _data.files.addAll(resumeFile.map((i) => MapEntry('resumeFile', i)));
     }
@@ -119,7 +129,12 @@ class _JobApiService implements JobApiService {
   @override
   Future<Job> updateJob(
     int id,
-    Map<String, dynamic> data, {
+    String title,
+    String description,
+    int companyId,
+    String location,
+    String type,
+    double salary, {
     List<MultipartFile>? resumeFile,
   }) async {
     final _extra = <String, dynamic>{};
@@ -127,7 +142,12 @@ class _JobApiService implements JobApiService {
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
-    _data.fields.add(MapEntry('data', jsonEncode(data)));
+    _data.fields.add(MapEntry('title', title));
+    _data.fields.add(MapEntry('description', description));
+    _data.fields.add(MapEntry('companyId', companyId.toString()));
+    _data.fields.add(MapEntry('location', location));
+    _data.fields.add(MapEntry('type', type));
+    _data.fields.add(MapEntry('salary', salary.toString()));
     if (resumeFile != null) {
       _data.files.addAll(resumeFile.map((i) => MapEntry('resumeFile', i)));
     }

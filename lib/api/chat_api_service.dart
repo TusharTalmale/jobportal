@@ -13,7 +13,9 @@ abstract class ChatApiService {
 
   /// Find or create a conversation between a user and a company.
   @POST(ApiConstants.chatConversations)
-  Future<Conversation> findOrCreateConversation(@Body() Map<String, int> body);
+  Future<Conversation> findOrCreateConversation(
+    @Body() Map<String, dynamic> body,
+  );
 
   /// Get conversations for a user. Returns a list of Conversation objects.
   @GET(ApiConstants.chatConversations)

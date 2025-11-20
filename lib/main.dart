@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/provider/chat_provider.dart';
+import 'package:jobportal/services/local_storage_service.dart';
 import 'package:jobportal/provider/network_provider.dart';
 import 'package:jobportal/provider/job_provider.dart';
+import 'package:jobportal/provider/job_application_provider.dart';
 import 'package:jobportal/screens/conversation/inbox_screen.dart';
 import 'package:jobportal/screens/job/find_job_page.dart';
 import 'package:jobportal/screens/network/network_screen.dart';
@@ -9,19 +11,27 @@ import 'package:jobportal/screens/saved_job.dart';
 import 'package:jobportal/utils/app_routes.dart';
 import 'package:jobportal/screens/home_screen.dart';
 import 'package:jobportal/provider/profile_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:jobportal/widgets/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:jobportal/provider/auth_viewmodel.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:jobportal/utils/app_router.dart';
 
-void main() => runApp(
-  DevicePreview(
-    enabled: !kReleaseMode,
-    builder: (context) => const JobPortalApp(), // Wrap your app
-  ),
-);
+Future<void> main() async {
+  // Ensure that Flutter bindings are initialized before calling async code.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize the local storage service.
+  await LocalStorageService().init();
+
+  runApp(
+    // DevicePreview(
+    //   enabled: !kReleaseMode,
+    //   builder: (context) =>
+    const JobPortalApp(),
+    // ),
+  );
+}
 
 class JobPortalApp extends StatelessWidget {
   const JobPortalApp({super.key});
@@ -32,14 +42,15 @@ class JobPortalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => JobProvider()),
+        ChangeNotifierProvider(create: (_) => JobApplicationProvider()),
         ChangeNotifierProxyProvider<ProfileProvider, ChatProvider>(
           create: (_) => ChatProvider(),
           update: (_, profile, chat) {
             chat ??= ChatProvider();
-            // Initialize chat provider with current profile user id
-            try {
-              chat.init(userId: profile.profile.id, type: 'user');
-            } catch (_) {}
+            final userProfile = profile.profile;
+            if (userProfile != null) {
+              chat.init(userId: userProfile.id, type: 'user');
+            }
             return chat;
           },
         ),
@@ -53,7 +64,7 @@ class JobPortalApp extends StatelessWidget {
         theme: ThemeData(fontFamily: 'DMSans', primarySwatch: Colors.blue),
 
         debugShowCheckedModeBanner: false,
-        initialRoute: AppRoutes.login,
+        initialRoute: AppRoutes.authCheck,
         onGenerateRoute: AppRouter.generateRoute,
       ),
     );
