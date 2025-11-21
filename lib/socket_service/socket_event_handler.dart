@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobportal/model.dart/conversation.dart';
 import 'package:jobportal/model.dart/message.dart';
-import 'package:jobportal/constants/socket_constants.dart';
+import 'package:jobportal/socket_service/socket_constants.dart';
 
 /// Handles Socket.IO events and provides callbacks for UI updates
 class SocketEventHandler {

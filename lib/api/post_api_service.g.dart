@@ -10,7 +10,7 @@ part of 'post_api_service.dart';
 
 class _PostApiService implements PostApiService {
   _PostApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.14.173.250:3000';
+    baseUrl ??= 'http://10.239.60.250:3000';
   }
 
   final Dio _dio;
@@ -231,6 +231,159 @@ class _PostApiService implements PostApiService {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<CompanyPost> createPost(
+    String title,
+    String? description,
+    int companyId,
+    String postType, {
+    List<MultipartFile>? fileUrl,
+    List<String>? tags,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.fields.add(MapEntry('title', title));
+    if (description != null) {
+      _data.fields.add(MapEntry('description', description));
+    }
+    _data.fields.add(MapEntry('companyId', companyId.toString()));
+    _data.fields.add(MapEntry('postType', postType));
+    if (fileUrl != null) {
+      _data.files.addAll(fileUrl.map((i) => MapEntry('fileUrl', i)));
+    }
+    tags?.forEach((i) {
+      _data.fields.add(MapEntry('tags', i));
+    });
+    final _options = _setStreamType<CompanyPost>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/posts',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late CompanyPost _value;
+    try {
+      _value = CompanyPost.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<CompanyPost> updatePost(
+    int postId,
+    String title,
+    String? description,
+    String postType, {
+    List<MultipartFile>? fileUrl,
+    List<String>? tags,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.fields.add(MapEntry('title', title));
+    if (description != null) {
+      _data.fields.add(MapEntry('description', description));
+    }
+    _data.fields.add(MapEntry('postType', postType));
+    if (fileUrl != null) {
+      _data.files.addAll(fileUrl.map((i) => MapEntry('fileUrl', i)));
+    }
+    tags?.forEach((i) {
+      _data.fields.add(MapEntry('tags', i));
+    });
+    final _options = _setStreamType<CompanyPost>(
+      Options(
+            method: 'PUT',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/posts/${postId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late CompanyPost _value;
+    try {
+      _value = CompanyPost.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<void> deletePost(int postId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<void>(
+      Options(method: 'DELETE', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/posts/${postId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<Comment> updateComment(
+    int commentId,
+    Map<String, dynamic> body,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<Comment>(
+      Options(method: 'PUT', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/comments/${commentId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late Comment _value;
+    try {
+      _value = Comment.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

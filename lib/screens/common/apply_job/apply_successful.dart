@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/model.dart/job_application.dart';
 import 'package:jobportal/utils/date_formatter.dart';
-import 'package:jobportal/screens/job/apply_job/apply_job_page.dart';
+import 'package:jobportal/screens/common/apply_job/apply_job_page.dart';
 
 class ApplySuccessfulPage extends StatelessWidget {
   final Job job;

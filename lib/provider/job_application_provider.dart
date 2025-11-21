@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:jobportal/api/job_application_api_service.dart';
+import 'package:jobportal/model.dart/application_response.dart';
 import 'package:jobportal/model.dart/job_application.dart';
 import 'package:jobportal/provider/api_client.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 
 /// Production-grade Provider for managing Job Applications
 class JobApplicationProvider extends ChangeNotifier {
@@ -149,7 +150,7 @@ class JobApplicationProvider extends ChangeNotifier {
   }
 
   /// Create new job application
-  Future<bool> createApplication({
+  Future<ApplicationResponse?> createApplication({
     required int jobId,
     required int userId,
     List<String>? resumeFilePaths,
@@ -162,26 +163,25 @@ class JobApplicationProvider extends ChangeNotifier {
         resumeFiles = await _prepareMultipartFiles(resumeFilePaths);
       }
 
-      final response = await _jobApplicationApiService.createApplication(
+      final applicationResponse = await _jobApplicationApiService.createApplication(
         jobId,
         userId,
         resumeFiles: resumeFiles,
       );
 
-      if (response.containsKey('newapplyJob')) {
-        final newApplication = JobApplication.fromJson(response['newapplyJob']);
-        _userApplications.add(newApplication);
-      }
+      // The API now returns a structured response.
+      // Let's add the new application to our local list.
+      _userApplications.add(applicationResponse.application);
 
       _filterAndSort();
       _setSuccess('Application submitted successfully!');
-      return true;
+      return applicationResponse;
     } on DioException catch (e) {
-      _setError('Failed to create application: ${e.message}');
-      return false;
+      _setError('Failed to create application: ${e.message ?? e.toString()}');
+      return null;
     } catch (e) {
       _setError('Unexpected error: $e');
-      return false;
+      return null;
     } finally {
       _setLoading(false);
     }

@@ -6,7 +6,7 @@ import 'package:jobportal/api/post_api_service.dart';
 import 'package:jobportal/model.dart/comment.dart';
 import 'package:jobportal/model.dart/company_post.dart';
 import 'package:jobportal/provider/api_client.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 
 class NetworkProvider with ChangeNotifier {
   // --- API Service ---
@@ -250,16 +250,25 @@ class NetworkProvider with ChangeNotifier {
         'userId': userId,
       });
 
-      // Update the local post data to reflect the new comment
-      if (_currentPost?.id == postId) {
-        // Add to the beginning of the list for immediate feedback
-        _currentPost?.comments?.insert(0, newComment);
+      // Update the post's comment count
+      CompanyPost? targetPost;
+      int postIndexInMainList = _posts.indexWhere((p) => p.id == postId);
+
+      if (postIndexInMainList != -1) {
+        targetPost = _posts[postIndexInMainList];
+      } else if (_currentPost?.id == postId) {
+        targetPost = _currentPost;
+      }
+
+      if (targetPost != null) {
+        targetPost.commentsCount++;
+        (targetPost.comments ??= []).insert(0, newComment);
         notifyListeners();
       }
-      // Optionally, you could also update the main _posts list
+
       return newComment;
     } catch (e) {
-      // Handle error
+      debugPrint("Failed to add comment: $e");
       return null;
     }
   }
@@ -329,16 +338,83 @@ class NetworkProvider with ChangeNotifier {
   Future<void> deleteComment(int commentId, int postId, int userId) async {
     try {
       await _postApiService.deleteComment(commentId, {'userId': userId});
-      // Remove the comment from local state
-      final post = _posts.firstWhere((p) => p.id == postId);
-      post.comments?.removeWhere((c) => c.id == commentId);
-      // Also check replies
-      post.comments?.forEach(
-        (c) => c.replies?.removeWhere((r) => r.id == commentId),
-      );
-      notifyListeners();
+
+      // Find and update the post
+      CompanyPost? targetPost;
+      int postIndex = _posts.indexWhere((p) => p.id == postId);
+
+      if (postIndex != -1) {
+        targetPost = _posts[postIndex];
+      } else if (_currentPost?.id == postId) {
+        targetPost = _currentPost;
+      }
+
+      if (targetPost != null) {
+        // Remove the comment and decrement count
+        final initialCount = targetPost.comments?.length ?? 0;
+        targetPost.comments?.removeWhere((c) => c.id == commentId);
+
+        // Also remove from nested replies
+        targetPost.comments?.forEach(
+          (c) => c.replies?.removeWhere((r) => r.id == commentId),
+        );
+
+        final removedCount = initialCount - (targetPost.comments?.length ?? 0);
+        targetPost.commentsCount =
+            targetPost.commentsCount > removedCount
+                ? targetPost.commentsCount - removedCount
+                : 0;
+
+        notifyListeners();
+      }
     } catch (e) {
-      // Handle error
+      debugPrint("Failed to delete comment: $e");
+    }
+  }
+
+  Future<Comment?> updateComment(
+    int commentId,
+    String newText,
+    int userId,
+  ) async {
+    try {
+      final updatedComment = await _postApiService.updateComment(commentId, {
+        'text': newText,
+        'userId': userId,
+      });
+
+      // Find and update the comment in the local data
+      bool findAndUpdateComment(List<Comment>? comments) {
+        if (comments == null) return false;
+        for (var i = 0; i < comments.length; i++) {
+          if (comments[i].id == commentId) {
+            comments[i] = updatedComment;
+            return true;
+          }
+          if (findAndUpdateComment(comments[i].replies)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      if (_currentPost != null &&
+          findAndUpdateComment(_currentPost!.comments)) {
+        notifyListeners();
+      }
+
+      // Also check main posts list
+      for (var post in _posts) {
+        if (findAndUpdateComment(post.comments)) {
+          notifyListeners();
+          break;
+        }
+      }
+
+      return updatedComment;
+    } catch (e) {
+      debugPrint("Failed to update comment: $e");
+      return null;
     }
   }
 }

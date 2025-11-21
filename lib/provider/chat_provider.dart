@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:jobportal/provider/api_client.dart';
 import 'package:jobportal/model.dart/conversation.dart';
 import 'package:jobportal/model.dart/message.dart';
-import 'package:jobportal/services/socket_manager.dart';
-import 'package:jobportal/services/socket_event_handler.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/socket_manager.dart';
+import 'package:jobportal/socket_service/socket_event_handler.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final _api = ApiClient();

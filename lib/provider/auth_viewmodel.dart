@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:jobportal/api/auth_api_service.dart';
 import 'package:jobportal/model.dart/user_profile.dart';
 import 'package:jobportal/provider/api_client.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   // Form Keys

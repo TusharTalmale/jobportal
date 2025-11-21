@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:jobportal/api/api_constants.dart';
-import 'package:jobportal/constants/socket_constants.dart';
+import 'package:jobportal/socket_service/socket_constants.dart';
 
 enum SocketConnectionState { disconnected, connecting, connected, error }
 

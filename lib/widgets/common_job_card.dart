@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/provider/job_provider.dart';
+import 'package:jobportal/provider/chat_provider.dart';
 import 'package:jobportal/utils/date_formatter.dart';
+import 'package:jobportal/screens/common/apply_job/apply_job_page.dart';
+import 'package:jobportal/screens/conversation/chatting_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../utils/app_routes.dart';
@@ -240,15 +243,63 @@ class JobOptionsSheet extends StatelessWidget {
           _OptionItem(
             icon: Icons.send_outlined,
             label: 'Send message',
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
+
+              if (job.company == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Company information not available'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final chatProvider = Provider.of<ChatProvider>(
+                  context,
+                  listen: false,
+                );
+                final conversation = await chatProvider.startConversation(
+                  job.company!.id,
+                );
+
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ChattingScreen(
+                            conversation: conversation,
+                            chatProvider: chatProvider,
+                            initialJob: job,
+                          ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error starting conversation: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
           ),
           _OptionItem(
             icon: Icons.share_outlined,
-            label: 'Shared',
+            label: 'Share',
             onTap: () {
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Share functionality coming soon'),
+                ),
+              );
             },
           ),
           _OptionItem(
@@ -260,6 +311,9 @@ class JobOptionsSheet extends StatelessWidget {
                 listen: false,
               ).removeJobFromSaved(job);
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Job removed from saved')),
+              );
             },
           ),
           Padding(
@@ -269,6 +323,12 @@ class JobOptionsSheet extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ApplyJobPage(job: job),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF130160),

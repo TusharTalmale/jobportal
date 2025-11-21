@@ -5,7 +5,7 @@ import 'package:jobportal/api/api_response.dart';
 import 'package:jobportal/api/job_api_service.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/provider/api_client.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 
 import '../api/company_api_service.dart';
 import '../model.dart/company.dart';
@@ -28,6 +28,7 @@ class JobProvider extends ChangeNotifier {
   String _userType = 'user';
 
   final List<Job> _savedJobs = [];
+  final List<Job> _appliedJobs = []; // Add state for applied jobs
   final List<Job> _recentJobs = [];
   String _designationFilter = '';
   String _locationFilter = '';
@@ -46,6 +47,16 @@ class JobProvider extends ChangeNotifier {
   RangeValues _salaryRange = const RangeValues(5, 40); // Default to full range
   String _experience = "No experience";
   List<String> _specialization = []; // Multi-select
+
+  // --- Temporary Filter States for editing in FilterPage ---
+  String? _tempLastUpdate;
+  String? _tempWorkplace;
+  List<String>? _tempJobTypes;
+  List<String>? _tempPositions;
+  List<String>? _tempCities;
+  RangeValues? _tempSalaryRange;
+  String? _tempExperience;
+  List<String>? _tempSpecialization;
 
   // --- Active Filters Map (for quick lookup and UI display) ---
   final Map<String, Set<String>> _activeFilters = {};
@@ -112,6 +123,7 @@ class JobProvider extends ChangeNotifier {
     try {
       _currentUserId = _storageService.getUserId();
       _userType = _storageService.getUserType() ?? 'user';
+      // Fetch jobs first, then load user-specific data that depends on allJobs
       await fetchJobs();
     } catch (e) {
       print('Error loading user data: $e');
@@ -129,6 +141,17 @@ class JobProvider extends ChangeNotifier {
   String get experience => _experience;
   List<String> get specialization => List.unmodifiable(_specialization);
 
+  // --- Getters for Temporary Filter States ---
+  String? get tempLastUpdate => _tempLastUpdate;
+  String? get tempWorkplace => _tempWorkplace;
+  List<String> get tempJobTypes => List.unmodifiable(_tempJobTypes ?? []);
+  List<String> get tempPositions => List.unmodifiable(_tempPositions ?? []);
+  List<String> get tempCities => List.unmodifiable(_tempCities ?? []);
+  RangeValues? get tempSalaryRange => _tempSalaryRange;
+  String? get tempExperience => _tempExperience;
+  List<String> get tempSpecialization =>
+      List.unmodifiable(_tempSpecialization ?? []);
+
   // --- Getters for Available Options ---
   List<String> get availableLastUpdates => _availableLastUpdates;
   List<String> get availableWorkplaces => _availableWorkplaces;
@@ -143,6 +166,7 @@ class JobProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<Job> get filteredJobs => _filteredJobs;
   List<Job> get savedJobs => _savedJobs;
+  List<Job> get appliedJobs => _appliedJobs;
   List<Job> get recentJobs => _recentJobs;
   List<Company> get allCompanies => _allCompanies;
   Map<String, Set<String>> get activeFilters => _activeFilters;
@@ -171,16 +195,44 @@ class JobProvider extends ChangeNotifier {
     } else {
       _savedJobs.add(job);
     }
+    _saveSavedJobs(); // Persist changes
     notifyListeners();
   }
 
   void removeJobFromSaved(Job job) {
     _savedJobs.removeWhere((j) => j.id == job.id);
+    _saveSavedJobs(); // Persist changes
     notifyListeners();
   }
 
   void deleteAllJobs() {
     _savedJobs.clear();
+    _saveSavedJobs(); // Persist changes
+    notifyListeners();
+  }
+
+  // --- Applied Jobs Methods ---
+  bool isJobApplied(Job job) {
+    return _appliedJobs.any((appliedJob) => appliedJob.id == job.id);
+  }
+
+  void addAppliedJob(Job job) {
+    if (!isJobApplied(job)) {
+      _appliedJobs.add(job);
+      _saveAppliedJobs(); // Persist changes
+      notifyListeners();
+    }
+  }
+
+  void removeJobFromApplied(Job job) {
+    _appliedJobs.removeWhere((j) => j.id == job.id);
+    _saveAppliedJobs(); // Persist changes
+    notifyListeners();
+  }
+
+  void deleteAllAppliedJobs() {
+    _appliedJobs.clear();
+    _saveAppliedJobs(); // Persist changes
     notifyListeners();
   }
 
@@ -198,6 +250,37 @@ class JobProvider extends ChangeNotifier {
     }
     await _saveRecentJobs();
     notifyListeners();
+  }
+
+  // --- Persistence Methods ---
+  Future<void> _saveSavedJobs() async {
+    final savedJobIds = _savedJobs.map((job) => job.id.toString()).toList();
+    await _storageService.saveString('savedJobIds', savedJobIds.join(','));
+  }
+
+  Future<void> _saveAppliedJobs() async {
+    final appliedJobIds = _appliedJobs.map((job) => job.id.toString()).toList();
+    await _storageService.saveString('appliedJobIds', appliedJobIds.join(','));
+  }
+
+  Future<void> _loadUserJobs() async {
+    // Load saved jobs
+    final savedJobIdsString = _storageService.getString('savedJobIds');
+    if (savedJobIdsString != null && savedJobIdsString.isNotEmpty) {
+      final savedJobIds = savedJobIdsString.split(',');
+      _savedJobs.addAll(
+        _allJobs.where((j) => savedJobIds.contains(j.id.toString())),
+      );
+    }
+
+    // Load applied jobs
+    final appliedJobIdsString = _storageService.getString('appliedJobIds');
+    if (appliedJobIdsString != null && appliedJobIdsString.isNotEmpty) {
+      final appliedJobIds = appliedJobIdsString.split(',');
+      _appliedJobs.addAll(
+        _allJobs.where((j) => appliedJobIds.contains(j.id.toString())),
+      );
+    }
   }
 
   Future<void> _saveRecentJobs() async {
@@ -242,7 +325,14 @@ class JobProvider extends ChangeNotifier {
       _allCompanies = responses[1] as List<Company>;
 
       _filteredJobs = List.from(_allJobs); // Initialize filtered list
+
+      // Load user-specific jobs after all jobs are available
       await _loadRecentJobs(); // Load recent jobs after fetching all jobs
+      await _loadUserJobs(); // Load saved and applied jobs
+
+      print('✅ Jobs loaded: ${_allJobs.length}');
+      print('✅ Companies loaded: ${_allCompanies.length}');
+      print('✅ Filtered jobs: ${_filteredJobs.length}');
     } on DioException catch (e) {
       if (e.response != null && e.response?.data is Map) {
         final errorResponse = ErrorResponse.fromJson(e.response!.data);
@@ -251,12 +341,14 @@ class JobProvider extends ChangeNotifier {
         _errorMessage =
             'An unexpected network error occurred. Please try again.';
       }
+      print('❌ DioException: $_errorMessage');
       // In case of error, ensure lists are empty
       _allJobs = [];
       _filteredJobs = [];
       _allCompanies = [];
     } catch (e) {
       _errorMessage = 'An unknown error occurred: $e';
+      print('❌ Exception: $_errorMessage');
       _allJobs = [];
       _filteredJobs = [];
       _allCompanies = [];
@@ -276,72 +368,80 @@ class JobProvider extends ChangeNotifier {
     _applyFilters();
   }
 
+  /// Initializes the temporary filter states with the current active filters.
+  /// This should be called when the filter page is opened.
+  void initFilterEditing() {
+    _tempLastUpdate = _lastUpdate;
+    _tempWorkplace = _workplace;
+    _tempJobTypes = List.from(_jobTypes);
+    _tempPositions = List.from(_positions);
+    _tempCities = List.from(_cities);
+    _tempSalaryRange = _salaryRange;
+    _tempExperience = _experience;
+    _tempSpecialization = List.from(_specialization);
+  }
+
   // --- Setters for FilterPage to update selections ---
   void setLastUpdate(String value) {
-    if (_lastUpdate != value) {
-      _lastUpdate = value;
-      _applyFilters();
-    }
+    _tempLastUpdate = value;
+    notifyListeners();
   }
 
   void setWorkplace(String value) {
-    if (_workplace != value) {
-      _workplace = value;
-      _applyFilters();
-    }
+    _tempWorkplace = value;
+    notifyListeners();
   }
 
   void toggleJobType(String value) {
-    if (_jobTypes.contains(value)) {
-      _jobTypes.remove(value);
+    _tempJobTypes ??= [];
+    if (_tempJobTypes!.contains(value)) {
+      _tempJobTypes!.remove(value);
     } else {
-      _jobTypes.add(value);
+      _tempJobTypes!.add(value);
     }
-    _applyFilters();
+    notifyListeners();
   }
 
   void setPositionLevel(String value) {
-    // Assuming 'Position level' is a single-selection filter based on your original code
-    _positions = [value];
-    _applyFilters();
+    _tempPositions = [value];
+    notifyListeners();
   }
 
   void toggleCity(String value) {
-    if (_cities.contains(value)) {
-      _cities.remove(value);
+    _tempCities ??= [];
+    if (_tempCities!.contains(value)) {
+      _tempCities!.remove(value);
     } else {
-      _cities.add(value);
+      _tempCities!.add(value);
     }
-    _applyFilters();
+    notifyListeners();
   }
 
   void setSalaryRange(RangeValues values) {
-    if (_salaryRange != values) {
-      _salaryRange = values;
-      _applyFilters();
-    }
+    _tempSalaryRange = values;
+    notifyListeners();
   }
 
   void setExperience(String value) {
-    if (_experience != value) {
-      _experience = value;
-      _applyFilters();
-    }
+    _tempExperience = value;
+    notifyListeners();
   }
 
   void toggleSpecialization(String value) {
-    if (_specialization.contains(value)) {
-      _specialization.remove(value);
+    _tempSpecialization ??= [];
+    if (_tempSpecialization!.contains(value)) {
+      _tempSpecialization!.remove(value);
     } else {
-      _specialization.add(value);
+      _tempSpecialization!.add(value);
     }
-    _applyFilters();
+    notifyListeners();
   }
 
   void clearFilters() {
     _designationFilter = '';
     _locationFilter = '';
-    // Reset all explicit filters to their initial/default states
+
+    // Reset both active and temporary filters to their initial/default states
     _lastUpdate = "Any time";
     _workplace = "On-site";
     _jobTypes = []; // Reset to empty for multi-select
@@ -351,16 +451,45 @@ class JobProvider extends ChangeNotifier {
     _experience = "No experience";
     _specialization = []; // Reset to empty for multi-select
     _activeFilters.clear(); // Clear the active filters map
+
+    // Also reset the temporary filters so the UI on the filter page updates
+    initFilterEditing();
+
     _applyFilters();
   }
 
   /// This method is called when the "APPLY NOW" button is pressed on the filter page.
-  /// It simply triggers a re-application of filters based on the current state.
+  /// It commits the temporary filter values to the active ones and applies them.
   void applyFilters() {
+    _lastUpdate = _tempLastUpdate ?? _lastUpdate;
+    _workplace = _tempWorkplace ?? _workplace;
+    _jobTypes = List.from(_tempJobTypes ?? []);
+    _positions = List.from(_tempPositions ?? []);
+    _cities = List.from(_tempCities ?? []);
+    _salaryRange = _tempSalaryRange ?? _salaryRange;
+    _experience = _tempExperience ?? _experience;
+    _specialization = List.from(_tempSpecialization ?? []);
+
     _applyFilters();
+    // No need to call notifyListeners() here as _applyFilters() does it.
   }
 
   void _applyFilters() {
+    // Populate _activeFilters BEFORE filtering
+    _activeFilters.clear();
+    if (_jobTypes.isNotEmpty) {
+      _activeFilters['jobType'] = Set.from(_jobTypes);
+    }
+    if (_positions.isNotEmpty) {
+      _activeFilters['position'] = Set.from(_positions);
+    }
+    if (_cities.isNotEmpty) {
+      _activeFilters['city'] = Set.from(_cities);
+    }
+    if (_specialization.isNotEmpty) {
+      _activeFilters['specialization'] = Set.from(_specialization);
+    }
+
     _filteredJobs =
         _allJobs.where((job) {
           // 1. Text field filters (existing)
@@ -474,23 +603,10 @@ class JobProvider extends ChangeNotifier {
               );
           if (!specializationMatch) return false;
 
-          // --- Populate _activeFilters for UI display ---
-          _activeFilters.clear();
-          if (_jobTypes.isNotEmpty) {
-            _activeFilters['jobType'] = Set.from(_jobTypes);
-          }
-          if (_positions.isNotEmpty) {
-            _activeFilters['position'] = Set.from(_positions);
-          }
-          if (_cities.isNotEmpty) {
-            _activeFilters['city'] = Set.from(_cities);
-          }
-          if (_specialization.isNotEmpty) {
-            _activeFilters['specialization'] = Set.from(_specialization);
-          }
           return true;
         }).toList();
 
+    print('🔍 Filtered jobs: ${_filteredJobs.length} from ${_allJobs.length}');
     notifyListeners();
   }
 

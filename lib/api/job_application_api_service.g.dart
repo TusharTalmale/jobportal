@@ -10,7 +10,7 @@ part of 'job_application_api_service.dart';
 
 class _JobApplicationApiService implements JobApplicationApiService {
   _JobApplicationApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.14.173.250:3000';
+    baseUrl ??= 'http://10.239.60.250:3000';
   }
 
   final Dio _dio;
@@ -80,7 +80,7 @@ class _JobApplicationApiService implements JobApplicationApiService {
   }
 
   @override
-  Future<Map<String, dynamic>> createApplication(
+  Future<ApplicationResponse> createApplication(
     int jobId,
     int userId, {
     List<MultipartFile>? resumeFiles,
@@ -95,7 +95,7 @@ class _JobApplicationApiService implements JobApplicationApiService {
     if (resumeFiles != null) {
       _data.files.addAll(resumeFiles.map((i) => MapEntry('resumeFile', i)));
     }
-    final _options = _setStreamType<Map<String, dynamic>>(
+    final _options = _setStreamType<ApplicationResponse>(
       Options(
             method: 'POST',
             headers: _headers,
@@ -111,9 +111,9 @@ class _JobApplicationApiService implements JobApplicationApiService {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Map<String, dynamic> _value;
+    late ApplicationResponse _value;
     try {
-      _value = _result.data!;
+      _value = ApplicationResponse.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;

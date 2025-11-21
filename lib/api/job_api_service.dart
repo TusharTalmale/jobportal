@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+// GENERATED CODE - DO NOT MODIFY BY HAND
 import 'package:dio/dio.dart';
 import 'package:jobportal/api/api_constants.dart';
 import 'package:jobportal/model.dart/job.dart';

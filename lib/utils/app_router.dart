@@ -4,12 +4,11 @@ import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/screens/auth/otp_screen.dart';
 import 'package:jobportal/screens/auth/signup_screen.dart';
 import 'package:jobportal/screens/conversation/inbox_screen.dart';
-import 'package:jobportal/screens/chat_list_screen.dart';
-import 'package:jobportal/screens/home_screen.dart';
-import 'package:jobportal/screens/job/apply_job/apply_job_page.dart';
+import 'package:jobportal/screens/home/home_screen.dart';
+import 'package:jobportal/screens/common/apply_job/apply_job_page.dart';
 import 'package:jobportal/screens/job/find_job_page.dart';
-import 'package:jobportal/screens/network/company_detail_screen.dart';
-import 'package:jobportal/screens/job/job_detail_page.dart';
+import 'package:jobportal/screens/common/details/company_detail_screen.dart';
+import 'package:jobportal/screens/common/details/job_detail_page.dart';
 import 'package:jobportal/screens/network/network_screen.dart';
 import 'package:jobportal/screens/profile/about_me_screen.dart';
 import 'package:jobportal/screens/profile/appreciation_screen.dart';
@@ -19,7 +18,7 @@ import 'package:jobportal/screens/profile/profile_view_screen.dart';
 import 'package:jobportal/screens/profile/resume_screen.dart';
 import 'package:jobportal/screens/profile/skills_screen.dart';
 import 'package:jobportal/screens/profile/work_experiance_screen.dart';
-import 'package:jobportal/screens/saved_job.dart';
+import 'package:jobportal/screens/saved/saved_job.dart';
 import 'package:jobportal/utils/app_routes.dart';
 import 'package:jobportal/main.dart';
 
@@ -50,8 +49,6 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const JobListingScreen());
       case AppRoutes.inbox:
         return MaterialPageRoute(builder: (_) => const InboxScreen());
-      case AppRoutes.chatList:
-        return MaterialPageRoute(builder: (_) => const ChatListScreen());
       case AppRoutes.savedJobs:
         return MaterialPageRoute(builder: (_) => const SavedJobsScreen());
       case AppRoutes.aboutMe:

@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:jobportal/model.dart/job.dart';
-import 'package:jobportal/model.dart/job_application.dart';
 import 'package:jobportal/provider/job_application_provider.dart';
 import 'package:jobportal/utils/date_formatter.dart';
-import 'package:jobportal/screens/job/apply_job/apply_successful.dart';
+import 'package:jobportal/widgets/custom_button.dart';
+import 'package:jobportal/screens/common/apply_job/apply_successful.dart';
 
 /// A simple model to represent an uploaded file for this screen.
 class UploadedFile {
@@ -134,24 +134,20 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
     try {
       final provider = context.read<JobApplicationProvider>();
 
-      final success = await provider.createApplication(
+      final response = await provider.createApplication(
         jobId: widget.job.id,
         userId: provider.currentUserId ?? 1,
         resumeFilePaths: [_uploadedFile!.filePath],
       );
 
-      if (success && mounted) {
-        // Get the newly created application
-        final applications = provider.userApplications;
-        final latestApp = applications.isNotEmpty ? applications.last : null;
-
+      if (response != null && mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder:
                 (context) => ApplySuccessfulPage(
                   job: widget.job,
                   file: _uploadedFile!,
-                  jobApplication: latestApp,
+                  jobApplication: response.application,
                 ),
           ),
         );
@@ -189,14 +185,7 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onPressed: () {
-              // Handle more options
-            },
-          ),
-        ],
+      
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -207,10 +196,12 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
             _buildUploadCVSection(),
             const SizedBox(height: 24),
             _buildInformationSection(),
+            _buildApplyButton(),
+            const SizedBox(height: 24),
           ],
         ),
       ),
-      bottomSheet: _buildApplyButton(),
+      // bottomSheet: _buildApplyButton(),
     );
   }
 
@@ -220,9 +211,9 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Column(
         children: [
-          if (widget.job.company?.companyGallery?.isNotEmpty ?? false)
+          if (widget.job.company?.companyLogo?.isNotEmpty ?? false)
             Image.network(
-              widget.job.company!.companyGallery!.first,
+              widget.job.company!.companyLogo!,
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -268,10 +259,15 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 0.0),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Colors.black87,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
@@ -282,13 +278,17 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('Upload CV'),
-          const SizedBox(height: 8),
+          _buildSectionTitle('Upload Your CV'),
+          const SizedBox(height: 10),
           Text(
-            'Add your CV/Resume to apply for a job',
-            style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+            'Submit your resume to apply for this job',
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           _uploadedFile == null
               ? _buildUploadBox()
               : _buildFileUploadedBox(_uploadedFile!),
@@ -302,38 +302,64 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
       children: [
         GestureDetector(
           onTap: _pickResumeFile,
-          child: CustomPaint(
-            painter: DashedBorderPainter(
-              color: Colors.grey[400]!,
-              strokeWidth: 2,
-              radius: const Radius.circular(12),
-              dashPattern: const [8, 4],
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: CustomPaint(
+              painter: DashedBorderPainter(
+                color: const Color(0xFF30009C).withOpacity(0.3),
+                strokeWidth: 2.5,
+                radius: const Radius.circular(14),
+                dashPattern: const [10, 6],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.upload_file, color: Colors.blue),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Upload CV/Resume',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 48,
+                  horizontal: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF30009C).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF30009C).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.cloud_upload_outlined,
+                        color: Color(0xFF30009C),
+                        size: 36,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      'Upload CV/Resume',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF30009C),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'or drag and drop',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _buildStoredResumesSection(),
       ],
     );
@@ -346,18 +372,16 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Or use stored resume from profile',
+              'Or use stored resume',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
               onPressed: () async {
-                // Navigate to profile to pick stored resume
-                // In real app, you'd navigate to profile and return with selected resume
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Profile resume picker - coming soon'),
@@ -365,11 +389,18 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
                   ),
                 );
               },
-              icon: const Icon(Icons.person),
+              icon: const Icon(Icons.person, size: 20),
               label: const Text('Select from Profile'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[200],
-                foregroundColor: Colors.grey[800],
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF30009C),
+                side: const BorderSide(color: Color(0xFF30009C), width: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -382,39 +413,61 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.green.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Colors.green.withOpacity(0.3), width: 1.5),
       ),
       child: Row(
         children: [
-          Image.asset('assets/images/pdf_icon.png', width: 40, height: 40),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Image.asset(
+              'assets/images/pdf_icon.png',
+              width: 32,
+              height: 32,
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
-            // This will prevent the row from overflowing
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   file.fileName,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   '${file.fileSize} • ${file.date}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: _removeFile,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: _removeFile,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
           ),
         ],
       ),
@@ -427,30 +480,48 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('Information'),
+          _buildSectionTitle('Tell Us About Yourself'),
           const SizedBox(height: 16),
           TextField(
             controller: _infoController,
             maxLines: 5,
             decoration: InputDecoration(
-              hintText: 'Explain why you are the right person for this job',
-              hintStyle: TextStyle(color: Colors.grey[500]),
+              hintText: 'Explain why you\'re the right fit for this role...',
+              hintStyle: TextStyle(
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w500,
+              ),
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.blue[700]!),
+                borderSide: const BorderSide(
+                  color: Color(0xFF30009C),
+                  width: 2,
+                ),
               ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tips: Mention relevant skills, achievements, or experience',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
             ),
           ),
+          const SizedBox(height: 48),
         ],
       ),
     );
@@ -458,59 +529,26 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
 
   Widget _buildApplyButton() {
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-      child: SafeArea(
-        child: Consumer<JobApplicationProvider>(
-          builder: (context, provider, _) {
-            return ElevatedButton(
-              onPressed:
-                  (_isApplying || provider.isLoading)
-                      ? null
-                      : _submitApplication,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF30009C),
-                disabledBackgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child:
-                  _isApplying || provider.isLoading
-                      ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Colors.white),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'SUBMITTING...',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      )
-                      : const Text(
-                        'APPLY NOW',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-            );
-          },
-        ),
+      child: Consumer<JobApplicationProvider>(
+        builder: (context, provider, _) {
+          final isLoading = _isApplying || provider.isLoading;
+          return CustomButton(
+            label: isLoading ? 'SUBMITTING...' : 'APPLY NOW',
+            onPressed: _submitApplication,
+            isLoading: isLoading,
+          );
+        },
       ),
     );
   }

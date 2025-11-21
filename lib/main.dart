@@ -1,15 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:jobportal/provider/chat_provider.dart';
-import 'package:jobportal/services/local_storage_service.dart';
+import 'package:jobportal/socket_service/local_storage_service.dart';
 import 'package:jobportal/provider/network_provider.dart';
 import 'package:jobportal/provider/job_provider.dart';
 import 'package:jobportal/provider/job_application_provider.dart';
 import 'package:jobportal/screens/conversation/inbox_screen.dart';
 import 'package:jobportal/screens/job/find_job_page.dart';
 import 'package:jobportal/screens/network/network_screen.dart';
-import 'package:jobportal/screens/saved_job.dart';
+import 'package:jobportal/screens/saved/saved_job.dart';
 import 'package:jobportal/utils/app_routes.dart';
-import 'package:jobportal/screens/home_screen.dart';
+import 'package:jobportal/screens/home/home_screen.dart';
 import 'package:jobportal/provider/profile_provider.dart';
 import 'package:jobportal/widgets/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
@@ -25,11 +26,11 @@ Future<void> main() async {
   await LocalStorageService().init();
 
   runApp(
-    // DevicePreview(
-    //   enabled: !kReleaseMode,
-    //   builder: (context) =>
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) =>
     const JobPortalApp(),
-    // ),
+    ),
   );
 }
 

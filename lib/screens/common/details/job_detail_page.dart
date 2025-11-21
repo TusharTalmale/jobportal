@@ -3,7 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:jobportal/provider/chat_provider.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:jobportal/provider/job_provider.dart';
-import 'package:jobportal/screens/job/apply_job/apply_job_page.dart';
+import 'package:jobportal/screens/common/apply_job/apply_job_page.dart';
 import 'package:jobportal/screens/conversation/chatting_screen.dart';
 import 'package:jobportal/utils/date_formatter.dart';
 import 'package:latlong2/latlong.dart';
@@ -22,6 +22,7 @@ class JobDetailsPage extends StatefulWidget {
 class _JobDetailsPageState extends State<JobDetailsPage> {
   // 0 = Description, 1 = Company
   int _selectedTabIndex = 0;
+  bool _isDescriptionExpanded = false;
 
   @override
   void initState() {
@@ -177,7 +178,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
 
   Widget _buildTabSwitcher() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24.0),
+      margin: const EdgeInsets.symmetric(horizontal: 14.0),
       decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
@@ -200,7 +201,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
         decoration: BoxDecoration(
           color: isSelected ? Colors.blue[700] : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -305,32 +306,48 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget _buildDescription(Job job) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            job.jobDescription ?? 'No description available.',
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey[800],
-              height: 1.5,
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final description = job.jobDescription ?? 'No description available.';
+          final style = TextStyle(
+            fontSize: 15,
+            color: Colors.grey[800],
+            height: 1.5,
+          );
+
+          final textSpan = TextSpan(text: description, style: style);
+          final textPainter = TextPainter(
+            text: textSpan,
             maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-          TextButton(
-            onPressed: () {
-              // Expand text logic
-            },
-            child: Text(
-              'Read more',
-              style: TextStyle(
-                color: Colors.blue[700],
-                fontWeight: FontWeight.bold,
+            textDirection: TextDirection.ltr,
+          )..layout(maxWidth: constraints.maxWidth);
+
+          final isTextOverflowing = textPainter.didExceedMaxLines;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                description,
+                style: style,
+                maxLines: _isDescriptionExpanded ? null : 4,
+                overflow: _isDescriptionExpanded ? null : TextOverflow.ellipsis,
               ),
-            ),
-          ),
-        ],
+              if (isTextOverflowing)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isDescriptionExpanded = !_isDescriptionExpanded;
+                    });
+                  },
+                  child: Text(
+                    _isDescriptionExpanded ? 'Read less' : 'Read more',
+                    style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

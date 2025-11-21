@@ -29,7 +29,7 @@ class CompanyPost {
 
   // --- Nested data from API ---
   final CompanyInfo? company;
-  final List<Comment>? comments;
+  List<Comment>? comments;
 
   CompanyPost({
     required this.id,

@@ -2,8 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:jobportal/provider/job_provider.dart';
 import 'package:provider/provider.dart';
 
-class FilterPage extends StatelessWidget {
+class FilterPage extends StatefulWidget {
   const FilterPage({super.key});
+
+  @override
+  State<FilterPage> createState() => _FilterPageState();
+}
+
+class _FilterPageState extends State<FilterPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize temporary filters when the page is first built
+    Provider.of<JobProvider>(context, listen: false).initFilterEditing();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +29,11 @@ class FilterPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
+              // Resetting clears both active and temp filters
               Provider.of<JobProvider>(context, listen: false).clearFilters();
             },
-            child: const Text('RESET', style: TextStyle(color: Colors.white)),
+            child: const Text('RESET',
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -32,15 +46,15 @@ class FilterPage extends StatelessWidget {
               children: [
                 _buildSectionTitle('Job Type'),
                 _buildMultiSelectChipGroup(
-                  options: provider.availableJobTypes,
-                  selected: provider.jobTypes.toSet(),
+                  options: provider.availableJobTypes, // from available options
+                  selected: provider.tempJobTypes.toSet(), // use temp state
                   onToggle: provider.toggleJobType,
                 ),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Specialization'),
                 _buildMultiSelectChipGroup(
                   options: provider.availableSpecializations,
-                  selected: provider.specialization.toSet(),
+                  selected: provider.tempSpecialization.toSet(), // use temp state
                   onToggle: provider.toggleSpecialization,
                 ),
                 const SizedBox(height: 24),
@@ -50,31 +64,30 @@ class FilterPage extends StatelessWidget {
                 _buildSectionTitle('Position Level'),
                 _buildSingleSelectChipGroup(
                   options: provider.availablePositions,
-                  selected:
-                      provider.positions.isNotEmpty
-                          ? provider.positions.first
-                          : null,
+                  selected: provider.tempPositions.isNotEmpty
+                      ? provider.tempPositions.first
+                      : null, // use temp state
                   onSelected: provider.setPositionLevel,
                 ),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Experience'),
                 _buildSingleSelectChipGroup(
                   options: provider.availableExperiences,
-                  selected: provider.experience,
+                  selected: provider.tempExperience, // use temp state
                   onSelected: provider.setExperience,
                 ),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Workplace'),
                 _buildSingleSelectChipGroup(
                   options: provider.availableWorkplaces,
-                  selected: provider.workplace,
+                  selected: provider.tempWorkplace, // use temp state
                   onSelected: provider.setWorkplace,
                 ),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Last Update'),
                 _buildSingleSelectChipGroup(
                   options: provider.availableLastUpdates,
-                  selected: provider.lastUpdate,
+                  selected: provider.tempLastUpdate, // use temp state
                   onSelected: provider.setLastUpdate,
                 ),
                 const SizedBox(height: 100), // Space for the button
@@ -168,25 +181,26 @@ class FilterPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '\$${provider.salaryRange.start.toInt()}k',
+              // Use temp value, with a fallback to the active one
+              '\$${(provider.tempSalaryRange?.start ?? provider.salaryRange.start).toInt()}k',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              '\$${provider.salaryRange.end.toInt()}k',
+              '\$${(provider.tempSalaryRange?.end ?? provider.salaryRange.end).toInt()}k',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
         RangeSlider(
-          values: provider.salaryRange,
+          values: provider.tempSalaryRange ?? provider.salaryRange,
           min: 5,
           max: 40,
           divisions: 35,
           activeColor: const Color(0xff2e236c),
           inactiveColor: Colors.grey[300],
           labels: RangeLabels(
-            '\$${provider.salaryRange.start.round()}k',
-            '\$${provider.salaryRange.end.round()}k',
+            '\$${(provider.tempSalaryRange?.start ?? provider.salaryRange.start).round()}k',
+            '\$${(provider.tempSalaryRange?.end ?? provider.salaryRange.end).round()}k',
           ),
           onChanged: (values) {
             provider.setSalaryRange(values);
@@ -203,8 +217,8 @@ class FilterPage extends StatelessWidget {
       child: SafeArea(
         child: ElevatedButton(
           onPressed: () {
-            // The provider state is already updated, so we just need to pop
-            // The `_applyFilters` method in the provider is called on every change.
+            // Commit the temporary filters and apply them
+            Provider.of<JobProvider>(context, listen: false).applyFilters();
             Navigator.of(context).pop();
           },
           style: ElevatedButton.styleFrom(
@@ -225,61 +239,6 @@ class FilterPage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-extension on JobProvider {
-  void updateSalaryRange(RangeValues newRange) {
-    // This is a placeholder for a potential future method in the provider
-    // if you decide to only update the state on "Apply".
-    // For now, `setSalaryRange` directly applies the filter.
-  }
-}
-
-class FilterSection extends StatelessWidget {
-  final String title;
-  final List<String> options;
-  final Set<String> selectedOptions;
-  final Function(String) onOptionSelected;
-
-  const FilterSection({
-    super.key,
-    required this.title,
-    required this.options,
-    required this.selectedOptions,
-    required this.onOptionSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8.0,
-          children:
-              options.map((option) {
-                final isSelected = selectedOptions.contains(option);
-                return FilterChip(
-                  label: Text(option),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    onOptionSelected(option);
-                  },
-                  selectedColor: Theme.of(context).primaryColor,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
     );
   }
 }

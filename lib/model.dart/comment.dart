@@ -9,10 +9,13 @@ class Comment {
   final int postId;
   final int userId;
   final int? parentId;
-  final int likesCount;
-  final List<int> likedBy;
+  @JsonKey(defaultValue: 0)
+  int likesCount;
+  @JsonKey(defaultValue: const [])
+  List<int> likedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<int>? mentionedUserIds;
 
   // Nested data from API responses
   final UserInfo? user;
@@ -25,9 +28,10 @@ class Comment {
     required this.userId,
     this.parentId,
     this.likesCount = 0,
-    this.likedBy = const [],
+    required this.likedBy,
     required this.createdAt,
     required this.updatedAt,
+    this.mentionedUserIds,
     this.user,
     this.replies,
   });

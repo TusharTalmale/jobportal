@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:jobportal/model.dart/job_application_comment.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:jobportal/api/api_constants.dart';
+import 'package:jobportal/model.dart/application_response.dart';
 import 'package:jobportal/model.dart/job_application.dart';
 
 part 'job_application_api_service.g.dart';
@@ -24,7 +24,7 @@ abstract class JobApplicationApiService {
   /// Create a new job application with file upload
   @POST(ApiConstants.applyJob)
   @MultiPart()
-  Future<Map<String, dynamic>> createApplication(
+  Future<ApplicationResponse> createApplication(
     @Part(name: "jobID") int jobId,
     @Part(name: "userID") int userId, {
     @Part(name: "resumeFile") List<MultipartFile>? resumeFiles,

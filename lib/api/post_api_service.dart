@@ -59,4 +59,37 @@ abstract class PostApiService {
     @Path("commentId") int commentId,
     @Body() Map<String, int> body, // {"userId": 1} for authorization
   );
+
+  // --- Bulk & Additional Endpoints ---
+
+  @POST(ApiConstants.posts)
+  @MultiPart()
+  Future<CompanyPost> createPost(
+    @Part(name: "title") String title,
+    @Part(name: "description") String? description,
+    @Part(name: "companyId") int companyId,
+    @Part(name: "postType") String postType, {
+    @Part(name: "fileUrl") List<MultipartFile>? fileUrl,
+    @Part(name: "tags") List<String>? tags,
+  });
+
+  @PUT(ApiConstants.postById)
+  @MultiPart()
+  Future<CompanyPost> updatePost(
+    @Path("postId") int postId,
+    @Part(name: "title") String title,
+    @Part(name: "description") String? description,
+    @Part(name: "postType") String postType, {
+    @Part(name: "fileUrl") List<MultipartFile>? fileUrl,
+    @Part(name: "tags") List<String>? tags,
+  });
+
+  @DELETE(ApiConstants.postById)
+  Future<void> deletePost(@Path("postId") int postId);
+
+  @PUT(ApiConstants.deleteComment)
+  Future<Comment> updateComment(
+    @Path("commentId") int commentId,
+    @Body() Map<String, dynamic> body, // {"text": "...", "userId": 1}
+  );
 }

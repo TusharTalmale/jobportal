@@ -11,7 +11,6 @@ class AppRoutes {
   static const String signup = '/signup';
   static const String otp = '/otp';
   static const String home = '/home';
-  static const String chatList = '/chat';
   static const String jobDetail = '/jobdetail';
   static const String apply = '/apply';
   static const String companyDetails = '/company-details';
