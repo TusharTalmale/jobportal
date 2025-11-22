@@ -1,5 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 import 'package:dio/dio.dart';
+import 'package:jobportal/DTO/api_paginated_jobs_response.dart';
+import 'package:jobportal/DTO/job_details_response.dart';
 import 'package:jobportal/api/api_constants.dart';
 import 'package:jobportal/model.dart/job.dart';
 import 'package:retrofit/retrofit.dart';
@@ -13,8 +15,26 @@ abstract class JobApiService {
   @GET(ApiConstants.jobs)
   Future<List<Job>> getAllJobs();
 
-  @GET(ApiConstants.jobById)
-  Future<Job> getJobById(@Path("id") int id);
+  // 🔥 UPDATED
+  @GET(ApiConstants.jobById) // "/Job/{id}"
+  Future<JobDetailsResponse> getJobDetails(@Path("id") int id , @Query("userId") int userId);
+
+  @GET(ApiConstants.jobsByPagination)
+  Future<ApiPaginatedJobsResponse> getJobsPaginated(
+    @Query("page") int page,
+    @Query("limit") int limit, {
+    @Query("search") String? search,
+    @Query("jobType") String? jobType,
+    @Query("workpLaceType") String? workpLaceType,
+    @Query("companyId") int? companyId,
+    @Query("city") String? city,
+    @Query("minSalary") int? minSalary,
+    @Query("maxSalary") int? maxSalary,
+    @Query("specialization") String? specialization,
+    @Query("experience") String? experience,
+    @Query("postedDate") String? postedDate,
+    @Query("userId") int? userId,  // 👈 required manual userId
+  });
 
   @POST(ApiConstants.jobs)
   @MultiPart()

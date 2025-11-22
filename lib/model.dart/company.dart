@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-
 import 'job.dart';
 
 part 'company.g.dart';
@@ -17,17 +16,30 @@ class Company {
   final String? companyType;
   final int? establishedSince;
   final String? specialization;
+
   @JsonKey(name: 'company_gallery')
   final List<String>? companyGallery;
+
   final int? followersCount;
   final String? industry;
   final String? email;
   final String? phone;
   final String? linkedin;
   final String? instagram;
+
+  @JsonKey(fromJson: _intList)
   final List<int>? followersIds;
+
   @JsonKey(name: 'companyJobs')
   final List<Job>? companyJobs;
+
+  @JsonKey(defaultValue: false)
+  final bool isFollowed;
+
+  static List<int>? _intList(dynamic value) {
+    if (value == null) return null;
+    return List<int>.from(value.map((e) => int.tryParse("$e") ?? 0));
+  }
 
   Company({
     required this.id,
@@ -50,6 +62,7 @@ class Company {
     this.instagram,
     this.followersIds,
     this.companyJobs,
+    this.isFollowed = false,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) =>

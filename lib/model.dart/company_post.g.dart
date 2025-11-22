@@ -12,7 +12,12 @@ CompanyPost _$CompanyPostFromJson(Map<String, dynamic> json) => CompanyPost(
   description: json['description'] as String?,
   fileUrl: json['fileUrl'] as String?,
   postType:
-      $enumDecodeNullable(_$PostTypeEnumMap, json['postType']) ?? PostType.text,
+      $enumDecodeNullable(
+        _$PostTypeEnumMap,
+        json['postType'],
+        unknownValue: PostType.text,
+      ) ??
+      PostType.text,
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
   likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
@@ -66,6 +71,18 @@ const _$PostTypeEnumMap = {
 PaginatedPostsResponse _$PaginatedPostsResponseFromJson(
   Map<String, dynamic> json,
 ) => PaginatedPostsResponse(
+  success: json['success'] as bool,
+  data: PostsData.fromJson(json['data'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$PaginatedPostsResponseToJson(
+  PaginatedPostsResponse instance,
+) => <String, dynamic>{
+  'success': instance.success,
+  'data': instance.data.toJson(),
+};
+
+PostsData _$PostsDataFromJson(Map<String, dynamic> json) => PostsData(
   totalItems: (json['totalItems'] as num).toInt(),
   posts:
       (json['posts'] as List<dynamic>)
@@ -73,15 +90,17 @@ PaginatedPostsResponse _$PaginatedPostsResponseFromJson(
           .toList(),
   totalPages: (json['totalPages'] as num).toInt(),
   currentPage: (json['currentPage'] as num).toInt(),
+  hasNext: json['hasNext'] as bool? ?? false,
+  hasPrev: json['hasPrev'] as bool? ?? false,
 );
 
-Map<String, dynamic> _$PaginatedPostsResponseToJson(
-  PaginatedPostsResponse instance,
-) => <String, dynamic>{
+Map<String, dynamic> _$PostsDataToJson(PostsData instance) => <String, dynamic>{
   'totalItems': instance.totalItems,
-  'posts': instance.posts,
+  'posts': instance.posts.map((e) => e.toJson()).toList(),
   'totalPages': instance.totalPages,
   'currentPage': instance.currentPage,
+  'hasNext': instance.hasNext,
+  'hasPrev': instance.hasPrev,
 };
 
 CompanyInfo _$CompanyInfoFromJson(Map<String, dynamic> json) => CompanyInfo(

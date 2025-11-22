@@ -28,14 +28,12 @@ Company _$CompanyFromJson(Map<String, dynamic> json) => Company(
   phone: json['phone'] as String?,
   linkedin: json['linkedin'] as String?,
   instagram: json['instagram'] as String?,
-  followersIds:
-      (json['followersIds'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList(),
+  followersIds: Company._intList(json['followersIds']),
   companyJobs:
       (json['companyJobs'] as List<dynamic>?)
           ?.map((e) => Job.fromJson(e as Map<String, dynamic>))
           .toList(),
+  isFollowed: json['isFollowed'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$CompanyToJson(Company instance) => <String, dynamic>{
@@ -59,4 +57,5 @@ Map<String, dynamic> _$CompanyToJson(Company instance) => <String, dynamic>{
   'instagram': instance.instagram,
   'followersIds': instance.followersIds,
   'companyJobs': instance.companyJobs?.map((e) => e.toJson()).toList(),
+  'isFollowed': instance.isFollowed,
 };

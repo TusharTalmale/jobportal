@@ -11,23 +11,29 @@ class CompanyPost {
   final String title;
   final String? description;
   final String? fileUrl;
-  @JsonKey(defaultValue: PostType.text)
+
+  @JsonKey(defaultValue: PostType.text, unknownEnumValue: PostType.text)
   final PostType postType;
+
   @JsonKey(defaultValue: [])
   final List<String> tags;
+
   @JsonKey(defaultValue: 0)
   int likesCount;
+
   @JsonKey(defaultValue: [])
   List<int> likedBy;
+
   @JsonKey(defaultValue: 0)
   int commentsCount;
+
   @JsonKey(defaultValue: 0)
   int sharesCount;
+
   final int companyId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  // --- Nested data from API ---
   final CompanyInfo? company;
   List<Comment>? comments;
 
@@ -55,23 +61,47 @@ class CompanyPost {
   Map<String, dynamic> toJson() => _$CompanyPostToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class PaginatedPostsResponse {
-  final int totalItems;
-  final List<CompanyPost> posts;
-  final int totalPages;
-  final int currentPage;
+  final bool success;
+  final PostsData data;
 
   PaginatedPostsResponse({
-    required this.totalItems,
-    required this.posts,
-    required this.totalPages,
-    required this.currentPage,
+    required this.success,
+    required this.data,
   });
 
   factory PaginatedPostsResponse.fromJson(Map<String, dynamic> json) =>
       _$PaginatedPostsResponseFromJson(json);
+
   Map<String, dynamic> toJson() => _$PaginatedPostsResponseToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class PostsData {
+  final int totalItems;
+  final List<CompanyPost> posts;
+  final int totalPages;
+  final int currentPage;
+    @JsonKey(defaultValue: false)
+  final bool hasNext;
+
+  @JsonKey(defaultValue: false)
+  final bool hasPrev;
+  PostsData({
+    required this.totalItems,
+    required this.posts,
+    required this.totalPages,
+    required this.currentPage,
+    this.hasNext = false,
+    this.hasPrev = false,
+  
+  });
+
+  factory PostsData.fromJson(Map<String, dynamic> json) =>
+      _$PostsDataFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PostsDataToJson(this);
 }
 
 @JsonSerializable()
@@ -80,14 +110,14 @@ class CompanyInfo {
   final String companyName;
   final String? companyLogo;
 
-  CompanyInfo({required this.id, required this.companyName, this.companyLogo});
+  CompanyInfo({
+    required this.id,
+    required this.companyName,
+    this.companyLogo,
+  });
 
-  factory CompanyInfo.fromJson(Map<String, dynamic> json) {
-    return CompanyInfo(
-      id: json['id'],
-      companyName: json['companyName'],
-      companyLogo: json['companyLogo'],
-    );
-  }
+  factory CompanyInfo.fromJson(Map<String, dynamic> json) =>
+      _$CompanyInfoFromJson(json);
+
   Map<String, dynamic> toJson() => _$CompanyInfoToJson(this);
 }

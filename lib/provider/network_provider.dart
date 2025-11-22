@@ -24,6 +24,7 @@ class NetworkProvider with ChangeNotifier {
   String? _errorMessage;
   int _currentPage = 1;
   int _totalPages = 1;
+  bool _hasNext = true;
 
   // For company-specific posts (e.g., on a company detail page)
   Map<int, List<CompanyPost>> _companyPosts = {};
@@ -64,7 +65,7 @@ class NetworkProvider with ChangeNotifier {
   List<CompanyPost> get posts => _posts;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get canLoadMorePosts => _currentPage < _totalPages;
+  bool get canLoadMorePosts => _hasNext;
   int? get currentUserId => _currentUserId;
   String get userType => _userType;
 
@@ -87,7 +88,7 @@ class NetworkProvider with ChangeNotifier {
   Future<void> fetchPosts({bool isRefresh = false}) async {
     if (isRefresh) {
       _currentPage = 1;
-      _posts = [];
+      _posts.clear();
     }
 
     _isLoading = true;
@@ -96,9 +97,15 @@ class NetworkProvider with ChangeNotifier {
 
     try {
       final response = await _postApiService.getAllPosts(page: _currentPage);
-      _posts.addAll(response.posts);
-      _totalPages = response.totalPages;
-      _currentPage++;
+
+      // Add posts
+      _posts.addAll(response.data.posts);
+
+      // Update pagination
+      _totalPages = response.data.totalPages;
+      _hasNext = response.data.hasNext;
+      // ALWAYS update current page for next call
+      _currentPage = (response.data.currentPage) + 1;
     } on DioException catch (e) {
       if (e.response != null && e.response?.data is Map) {
         final errorResponse = ErrorResponse.fromJson(e.response!.data);
@@ -118,12 +125,11 @@ class NetworkProvider with ChangeNotifier {
     int companyId, {
     bool isRefresh = false,
   }) async {
+    _companyPostsLoading[companyId] = true;
     if (isRefresh) {
       _companyPosts[companyId] = [];
       _companyPostsCurrentPage[companyId] = 1;
     }
-
-    _companyPostsLoading[companyId] = true;
     notifyListeners();
 
     try {
@@ -133,12 +139,14 @@ class NetworkProvider with ChangeNotifier {
         page: page,
       );
 
-      if (_companyPosts[companyId] == null) {
-        _companyPosts[companyId] = [];
+      _companyPosts[companyId] ??= [];
+
+      _companyPosts[companyId]!.addAll(response.data.posts);
+      _companyPostsTotalPages[companyId] = response.data.totalPages;
+
+      if (response.data.hasNext) {
+        _companyPostsCurrentPage[companyId] = (response.data.currentPage) + 1;
       }
-      _companyPosts[companyId]!.addAll(response.posts);
-      _companyPostsTotalPages[companyId] = response.totalPages;
-      _companyPostsCurrentPage[companyId] = page + 1;
     } catch (e) {
       // Handle error
       print('Error fetching company posts: $e');
@@ -173,7 +181,8 @@ class NetworkProvider with ChangeNotifier {
   }
 
   void loadMorePosts() {
-    if (canLoadMorePosts && !_isLoading) {
+    // Corrected pagination check
+    if (_hasNext && !_isLoading) {
       fetchPosts();
     }
   }

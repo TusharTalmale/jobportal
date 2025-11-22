@@ -27,15 +27,11 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Add the job to the recent list when the page is opened.
+    // Trigger the API call to fetch job details when the page is opened.
+    // The provider handles adding it to recent jobs upon successful fetch.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final jobProvider = Provider.of<JobProvider>(context, listen: false);
-      final job = jobProvider.getJobById(widget.jobId);
-      if (job != null) {
-        // No need to await here, just fire and forget.
-        // The provider will handle saving and notify listeners.
-        jobProvider.addRecentJob(job);
-      }
+      jobProvider.getJobById(widget.jobId);
     });
   }
 
@@ -54,13 +50,20 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final jobProvider = Provider.of<JobProvider>(context);
-    final job = jobProvider.getJobById(widget.jobId);
+    final job = jobProvider.selectedJob;
 
-    // Handle the case where the job might not be found
-    if (job == null) {
+    // Show a loading indicator while fetching or if the job is not found.
+    if (jobProvider.isJobLoading || job == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Job not found!')),
+        body: Center(
+          child: jobProvider.errorMessage != null
+              ? Text(
+                  jobProvider.errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                )
+              : const CircularProgressIndicator(),
+        ),
       );
     }
 
@@ -403,7 +406,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               borderRadius: BorderRadius.circular(12),
               child: FlutterMap(
                 options: MapOptions(
-                  initialCenter: LatLng(job.latitude, job.longitude),
+                  initialCenter: LatLng(job.lattitude ?? 0.0, job.longitude ?? 0.0),
                   initialZoom: 14.0,
                 ),
                 children: [
@@ -415,7 +418,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: LatLng(job.latitude, job.longitude),
+                        point: LatLng(job.lattitude ?? 0.0 , job.longitude ?? 0.0),
                         child: const Icon(
                           Icons.location_on,
                           color: Colors.red,

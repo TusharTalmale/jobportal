@@ -15,6 +15,9 @@ class CompanyPostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Get current user ID from storage
+    final logo = post.company?.companyLogo;
+    final mediaUrl = post.fileUrl;
+
     final currentUserId = LocalStorageService().getUserId() ?? 1;
 
     return Container(
@@ -50,12 +53,11 @@ class CompanyPostCard extends StatelessWidget {
               },
               child: Row(
                 children: [
-                  if (post.company?.companyLogo != null &&
-                      post.company!.companyLogo!.isNotEmpty)
+                  if (logo != null && logo.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
-                        post.company!.companyLogo!,
+                        logo,
                         width: 48,
                         height: 48,
                         fit: BoxFit.cover,
@@ -160,8 +162,8 @@ class CompanyPostCard extends StatelessWidget {
           ),
 
           // --- Media (Image/Video) ---
-          if (post.fileUrl != null &&
-              post.fileUrl!.isNotEmpty &&
+          if (mediaUrl != null &&
+              mediaUrl.isNotEmpty &&
               (post.postType == PostType.image ||
                   post.postType == PostType.video)) ...[
             const SizedBox(height: 12),
@@ -170,7 +172,7 @@ class CompanyPostCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  post.fileUrl!,
+                  mediaUrl,
                   height: 220,
                   width: double.infinity,
                   fit: BoxFit.cover,

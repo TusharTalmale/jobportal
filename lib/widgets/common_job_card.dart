@@ -49,6 +49,56 @@ class JobCard extends StatelessWidget {
     );
   }
 
+  Widget _buildStatusTag(String text, Color backgroundColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusOrPostedDate(Job job) {
+    if (job.isExpired) {
+      return _buildStatusTag(
+        'Expired',
+        Colors.red.shade100,
+        Colors.red.shade800,
+      );
+    }
+    if (job.applicationStatus.toLowerCase() == 'interviewed') {
+      return _buildStatusTag(
+        'Interview',
+        Colors.green.shade100,
+        Colors.green.shade800,
+      );
+    }
+    if (job.isApplied) {
+      return _buildStatusTag(
+        'Applied',
+        Colors.blue.shade100,
+        Colors.blue.shade800,
+      );
+    }
+    return Text(
+      "Posted ${formatTimeAgo(job.postedAt)}",
+      style: const TextStyle(
+        fontSize: 12,
+        color: Color(0xFFAAA6B9),
+        fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Create tags from job properties
@@ -174,14 +224,7 @@ class JobCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Posted ${formatTimeAgo(job.postedAt)}",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFAAA6B9),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  _buildStatusOrPostedDate(job),
                   RichText(
                     text: TextSpan(
                       children: [

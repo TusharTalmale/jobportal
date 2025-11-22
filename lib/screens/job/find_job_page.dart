@@ -6,8 +6,27 @@ import 'package:provider/provider.dart';
 
 import '../../widgets/empty_widget.dart';
 
-class JobListingScreen extends StatelessWidget {
+class JobListingScreen extends StatefulWidget {
   const JobListingScreen({super.key});
+
+  @override
+  State<JobListingScreen> createState() => _JobListingScreenState();
+}
+
+class _JobListingScreenState extends State<JobListingScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        jobProvider.loadMore();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +60,7 @@ class JobListingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => jobProvider.fetchJobs(),
+                      onPressed: () => jobProvider.loadFirstPage(),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -59,13 +78,27 @@ class JobListingScreen extends StatelessWidget {
                   child:
                       jobProvider.filteredJobs.isEmpty
                           ? const EmptyStateWidget()
-                          : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: jobProvider.filteredJobs.length,
-                            itemBuilder: (context, index) {
-                              final job = jobProvider.filteredJobs[index];
-                              return JobCard(job: job);
-                            },
+                          : Column(
+                            children: [
+                              Expanded(
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  itemCount: jobProvider.filteredJobs.length,
+                                  itemBuilder: (context, index) {
+                                    final job = jobProvider.filteredJobs[index];
+                                    return JobCard(job: job);
+                                  },
+                                ),
+                              ),
+                              // if (jobProvider.isLoadMore)
+                              //   const Padding(
+                              //     padding: EdgeInsets.all(8.0),
+                              //     child: CircularProgressIndicator(),
+                              //   ),
+                            ],
                           ),
                 ),
               ],

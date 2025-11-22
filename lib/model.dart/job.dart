@@ -1,7 +1,22 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:jobportal/model.dart/company.dart';
+import 'company.dart';
 
 part 'job.g.dart';
+
+double? _toDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _toInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value);
+  return null;
+}
 
 @JsonSerializable(explicitToJson: true)
 class Job {
@@ -10,7 +25,10 @@ class Job {
   final String? jobLocation;
   final String? salary;
   final String? jobType;
+
+  @JsonKey(name: 'workpLaceType')
   final String? workpLaceType;
+
   final String? position;
   final String? qualification;
   final String? experience;
@@ -18,20 +36,40 @@ class Job {
   final String? facilities;
   final String? jobDescription;
   final String? requirements;
-  @JsonKey(name: 'comapnyID') // Correctly maps the backend typo
+
+  @JsonKey(name: 'companyId')
   final int? companyId;
-  final double latitude;
-  final double longitude;
+
+  @JsonKey(fromJson: _toDouble)
+  final double? lattitude;
+
+  @JsonKey(fromJson: _toDouble)
+  final double? longitude;
 
   final int? postedBy;
   final DateTime? postedAt;
   final DateTime? expiresAt;
+
+  @JsonKey(fromJson: _intList)
   final List<int>? applicantsIds;
+
   final String? status;
   final int? viewsCount;
+  @JsonKey(defaultValue: false)
+  final bool isApplied;
 
-  @JsonKey(name: 'company')
+  @JsonKey(defaultValue: false)
+  final bool isExpired;
+
+  @JsonKey(defaultValue: 'none')
+  final String applicationStatus;
+
   final Company? company;
+
+  static List<int>? _intList(dynamic value) {
+    if (value == null) return null;
+    return List<int>.from(value.map((e) => int.tryParse("$e") ?? 0));
+  }
 
   Job({
     required this.id,
@@ -48,18 +86,20 @@ class Job {
     this.jobDescription,
     this.requirements,
     this.companyId,
-    this.company,
-    this.latitude = 0.0, // Default value
-    this.longitude = 0.0, // Default value
+    this.lattitude,
+    this.longitude,
     this.postedBy,
     this.postedAt,
     this.expiresAt,
     this.applicantsIds,
     this.status,
     this.viewsCount,
+    this.isApplied = false,
+    this.isExpired = false,
+    this.applicationStatus = 'none',
+    this.company,
   });
 
   factory Job.fromJson(Map<String, dynamic> json) => _$JobFromJson(json);
-
   Map<String, dynamic> toJson() => _$JobToJson(this);
 }

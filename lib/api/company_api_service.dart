@@ -1,5 +1,6 @@
-
 import 'package:dio/dio.dart';
+import 'package:jobportal/DTO/api_paginated_companies_response.dart';
+import 'package:jobportal/DTO/company_details_response.dart';
 import 'package:jobportal/api/api_constants.dart';
 import 'package:jobportal/model.dart/company.dart';
 import 'package:retrofit/retrofit.dart';
@@ -13,8 +14,18 @@ abstract class CompanyApiService {
   @GET(ApiConstants.companies)
   Future<List<Company>> getAllCompanies();
 
-  @GET(ApiConstants.companyById)
-  Future<Company> getCompanyById(@Path("id") int id);
+  @GET("/api/company/{id}")
+  Future<CompanyDetailsResponse> getCompanyById(
+    @Path("id") int id,
+    @Query("userId") int userId,
+  );
+  @GET(ApiConstants.companiesByPagination)
+  Future<ApiPaginatedCompaniesResponse> getCompaniesPaginated(
+    @Query("page") int page,
+    @Query("limit") int limit, {
+    @Query("search") String? search,
+    @Query("userId") int? userId,
+  });
 
   @POST(ApiConstants.companies)
   @MultiPart()
@@ -41,4 +52,17 @@ abstract class CompanyApiService {
 
   @DELETE(ApiConstants.companyById)
   Future<void> deleteCompany(@Path("id") int id);
+
+    // Toggle follow
+  @POST("/company/{companyId}/user/{userId}/toggle-follow")
+  Future<void> toggleFollowCompany(
+    @Path("companyId") int companyId,
+    @Path("userId") int userId,
+  );
+
+  // Get companies followed by user
+  @GET("/user/{userId}/followed-companies")
+  Future<List<Company>> getFollowedCompanies(
+    @Path("userId") int userId,
+  );
 }

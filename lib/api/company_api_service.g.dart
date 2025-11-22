@@ -10,7 +10,7 @@ part of 'company_api_service.dart';
 
 class _CompanyApiService implements CompanyApiService {
   _CompanyApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.239.60.250:3000';
+    baseUrl ??= 'http://10.49.69.250:3000';
   }
 
   final Dio _dio;
@@ -50,12 +50,12 @@ class _CompanyApiService implements CompanyApiService {
   }
 
   @override
-  Future<Company> getCompanyById(int id) async {
+  Future<CompanyDetailsResponse> getCompanyById(int id, int userId) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'userId': userId};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Company>(
+    final _options = _setStreamType<CompanyDetailsResponse>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -66,9 +66,47 @@ class _CompanyApiService implements CompanyApiService {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Company _value;
+    late CompanyDetailsResponse _value;
     try {
-      _value = Company.fromJson(_result.data!);
+      _value = CompanyDetailsResponse.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<ApiPaginatedCompaniesResponse> getCompaniesPaginated(
+    int page,
+    int limit, {
+    String? search,
+    int? userId,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'page': page,
+      r'limit': limit,
+      r'search': search,
+      r'userId': userId,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<ApiPaginatedCompaniesResponse>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/companies',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiPaginatedCompaniesResponse _value;
+    try {
+      _value = ApiPaginatedCompaniesResponse.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;
@@ -198,6 +236,55 @@ class _CompanyApiService implements CompanyApiService {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<void> toggleFollowCompany(int companyId, int userId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/company/${companyId}/user/${userId}/toggle-follow',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
+  Future<List<Company>> getFollowedCompanies(int userId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<List<Company>>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/user/${userId}/followed-companies',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<Company> _value;
+    try {
+      _value =
+          _result.data!
+              .map((dynamic i) => Company.fromJson(i as Map<String, dynamic>))
+              .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

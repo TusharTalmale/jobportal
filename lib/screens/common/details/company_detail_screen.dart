@@ -21,29 +21,30 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NetworkProvider>(
-        context,
-        listen: false,
-      ).fetchPostsByCompany(widget.companyId, isRefresh: true);
+      final jobProvider = Provider.of<JobProvider>(context, listen: false);
+      final networkProvider = Provider.of<NetworkProvider>(context, listen: false);
+
+      jobProvider.fetchCompanyDetails(widget.companyId);
+      networkProvider.fetchPostsByCompany(widget.companyId, isRefresh: true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final jobProvider = Provider.of<JobProvider>(context);
-    final company = jobProvider.getCompanyById(widget.companyId);
+    final company = jobProvider.selectedCompany;
 
-    if (company == null) {
+    // Show a loading indicator while fetching or if the company is not found.
+    if (jobProvider.isCompanyDetailsLoading || company == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Company Profile'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         body: const Center(
-          child: Text('Company not found or still loading...'),
+          child: CircularProgressIndicator(),
         ),
       );
     }

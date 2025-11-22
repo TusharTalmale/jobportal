@@ -6,8 +6,33 @@ import 'package:jobportal/widgets/company_follow_card.dart';
 import 'package:jobportal/widgets/company_post_card.dart';
 import 'package:provider/provider.dart';
 
-class NetworkScreen extends StatelessWidget {
+class NetworkScreen extends StatefulWidget {
   const NetworkScreen({super.key});
+
+  @override
+  State<NetworkScreen> createState() => _NetworkScreenState();
+}
+
+class _NetworkScreenState extends State<NetworkScreen> {
+  final _companyScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    _companyScrollController.addListener(() {
+      if (_companyScrollController.position.pixels ==
+          _companyScrollController.position.maxScrollExtent) {
+        jobProvider.loadMoreCompanies();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _companyScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +70,8 @@ class NetworkScreen extends StatelessWidget {
               // Show loading state for both tabs
               if ((networkProvider.isLoading &&
                       networkProvider.posts.isEmpty) ||
-                  (jobProvider.isLoading && jobProvider.allCompanies.isEmpty)) {
+                  (jobProvider.isCompanyLoading &&
+                      jobProvider.companies.isEmpty)) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -53,7 +79,7 @@ class NetworkScreen extends StatelessWidget {
               if ((networkProvider.errorMessage != null &&
                       networkProvider.posts.isEmpty) ||
                   (jobProvider.errorMessage != null &&
-                      jobProvider.allCompanies.isEmpty)) {
+                      jobProvider.companies.isEmpty)) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -71,8 +97,8 @@ class NetworkScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
-                          networkProvider.loadMorePosts();
-                          jobProvider.fetchJobs();
+                          networkProvider.fetchPosts(isRefresh: true);
+                          jobProvider.loadCompaniesFirstPage();
                         },
                         child: const Text('Retry'),
                       ),
@@ -81,18 +107,12 @@ class NetworkScreen extends StatelessWidget {
                 );
               }
 
-              final companiesToFollow = jobProvider.allCompanies;
-
               return TabBarView(
                 children: [
                   // Posts Tab
                   _buildPostsTab(networkProvider),
                   // Companies Tab
-                  _buildCompaniesTab(
-                    context,
-                    networkProvider,
-                    companiesToFollow,
-                  ),
+                  _buildCompaniesTab(context, networkProvider, jobProvider),
                 ],
               );
             },
@@ -136,9 +156,10 @@ class NetworkScreen extends StatelessWidget {
   Widget _buildCompaniesTab(
     BuildContext context,
     NetworkProvider networkProvider,
-    List<dynamic> companiesToFollow,
+    JobProvider jobProvider,
   ) {
     return CustomScrollView(
+      controller: _companyScrollController,
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
@@ -164,12 +185,20 @@ class NetworkScreen extends StatelessWidget {
               childAspectRatio: 0.8,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
-              final company = companiesToFollow[index];
+              final company = jobProvider.companies[index];
               return buildCompanyFollowCard(context, networkProvider, company);
-            }, childCount: companiesToFollow.length),
+            }, childCount: jobProvider.companies.length),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        if (jobProvider.isCompanyLoadingMore)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        if (!jobProvider.isCompanyLoadingMore)
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
     );
   }

@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = "http://10.239.60.250:3000";
+  static const String baseUrl = "http://10.49.69.250:3000";
 
   // Auth Endpoints
   static const String signupSendOtp = "/api/signup/send-otp";
@@ -48,4 +48,7 @@ class ApiConstants {
       "/api/applyJob/{id}/comment/{commentId}/status";
   static const String applyJobShareProfile = "/api/applyJob/{id}/shareProfile";
   static const String applyJobReview = "/api/applyJob/{id}/review";
+
+  static const String jobsByPagination = "/api/JobByPagination";
+  static const String companiesByPagination = "/api/companies";
 }

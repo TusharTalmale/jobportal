@@ -10,7 +10,7 @@ part of 'job_application_api_service.dart';
 
 class _JobApplicationApiService implements JobApplicationApiService {
   _JobApplicationApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.239.60.250:3000';
+    baseUrl ??= 'http://10.49.69.250:3000';
   }
 
   final Dio _dio;

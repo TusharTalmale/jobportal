@@ -10,7 +10,7 @@ part of 'job_api_service.dart';
 
 class _JobApiService implements JobApiService {
   _JobApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.239.60.250:3000';
+    baseUrl ??= 'http://10.49.69.250:3000';
   }
 
   final Dio _dio;
@@ -50,12 +50,12 @@ class _JobApiService implements JobApiService {
   }
 
   @override
-  Future<Job> getJobById(int id) async {
+  Future<JobDetailsResponse> getJobDetails(int id, int userId) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'userId': userId};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Job>(
+    final _options = _setStreamType<JobDetailsResponse>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -66,9 +66,65 @@ class _JobApiService implements JobApiService {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, dynamic>>(_options);
-    late Job _value;
+    late JobDetailsResponse _value;
     try {
-      _value = Job.fromJson(_result.data!);
+      _value = JobDetailsResponse.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<ApiPaginatedJobsResponse> getJobsPaginated(
+    int page,
+    int limit, {
+    String? search,
+    String? jobType,
+    String? workpLaceType,
+    int? companyId,
+    String? city,
+    int? minSalary,
+    int? maxSalary,
+    String? specialization,
+    String? experience,
+    String? postedDate,
+    int? userId,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{
+      r'page': page,
+      r'limit': limit,
+      r'search': search,
+      r'jobType': jobType,
+      r'workpLaceType': workpLaceType,
+      r'companyId': companyId,
+      r'city': city,
+      r'minSalary': minSalary,
+      r'maxSalary': maxSalary,
+      r'specialization': specialization,
+      r'experience': experience,
+      r'postedDate': postedDate,
+      r'userId': userId,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<ApiPaginatedJobsResponse>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/JobByPagination',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late ApiPaginatedJobsResponse _value;
+    try {
+      _value = ApiPaginatedJobsResponse.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options);
       rethrow;

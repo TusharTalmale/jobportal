@@ -20,13 +20,9 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
   facilities: json['facilities'] as String?,
   jobDescription: json['jobDescription'] as String?,
   requirements: json['requirements'] as String?,
-  companyId: (json['comapnyID'] as num?)?.toInt(),
-  company:
-      json['company'] == null
-          ? null
-          : Company.fromJson(json['company'] as Map<String, dynamic>),
-  latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-  longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+  companyId: (json['companyId'] as num?)?.toInt(),
+  lattitude: _toDouble(json['lattitude']),
+  longitude: _toDouble(json['longitude']),
   postedBy: (json['postedBy'] as num?)?.toInt(),
   postedAt:
       json['postedAt'] == null
@@ -36,12 +32,16 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
       json['expiresAt'] == null
           ? null
           : DateTime.parse(json['expiresAt'] as String),
-  applicantsIds:
-      (json['applicantsIds'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList(),
+  applicantsIds: Job._intList(json['applicantsIds']),
   status: json['status'] as String?,
   viewsCount: (json['viewsCount'] as num?)?.toInt(),
+  isApplied: json['isApplied'] as bool? ?? false,
+  isExpired: json['isExpired'] as bool? ?? false,
+  applicationStatus: json['applicationStatus'] as String? ?? 'none',
+  company:
+      json['company'] == null
+          ? null
+          : Company.fromJson(json['company'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
@@ -58,8 +58,8 @@ Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
   'facilities': instance.facilities,
   'jobDescription': instance.jobDescription,
   'requirements': instance.requirements,
-  'comapnyID': instance.companyId,
-  'latitude': instance.latitude,
+  'companyId': instance.companyId,
+  'lattitude': instance.lattitude,
   'longitude': instance.longitude,
   'postedBy': instance.postedBy,
   'postedAt': instance.postedAt?.toIso8601String(),
@@ -67,5 +67,8 @@ Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
   'applicantsIds': instance.applicantsIds,
   'status': instance.status,
   'viewsCount': instance.viewsCount,
+  'isApplied': instance.isApplied,
+  'isExpired': instance.isExpired,
+  'applicationStatus': instance.applicationStatus,
   'company': instance.company?.toJson(),
 };
