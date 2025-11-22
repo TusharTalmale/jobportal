@@ -39,6 +39,7 @@ CompanyPost _$CompanyPostFromJson(Map<String, dynamic> json) => CompanyPost(
       (json['comments'] as List<dynamic>?)
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList(),
+  isLiked: json['isLiked'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$CompanyPostToJson(CompanyPost instance) =>
@@ -58,6 +59,7 @@ Map<String, dynamic> _$CompanyPostToJson(CompanyPost instance) =>
       'updatedAt': instance.updatedAt.toIso8601String(),
       'company': instance.company?.toJson(),
       'comments': instance.comments?.map((e) => e.toJson()).toList(),
+      'isLiked': instance.isLiked,
     };
 
 const _$PostTypeEnumMap = {
@@ -114,4 +116,16 @@ Map<String, dynamic> _$CompanyInfoToJson(CompanyInfo instance) =>
       'id': instance.id,
       'companyName': instance.companyName,
       'companyLogo': instance.companyLogo,
+    };
+
+PostLikeResponse _$PostLikeResponseFromJson(Map<String, dynamic> json) =>
+    PostLikeResponse(
+      json['action'] as String,
+      (json['likesCount'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$PostLikeResponseToJson(PostLikeResponse instance) =>
+    <String, dynamic>{
+      'action': instance.action,
+      'likesCount': instance.likesCount,
     };

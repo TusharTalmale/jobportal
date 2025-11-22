@@ -9,17 +9,23 @@ class Comment {
   final int postId;
   final int userId;
   final int? parentId;
+
   @JsonKey(defaultValue: 0)
   int likesCount;
-  @JsonKey(defaultValue: const [])
-  List<int> likedBy;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final List<int>? mentionedUserIds;
 
-  // Nested data from API responses
-  final UserInfo? user;
-  List<Comment>? replies;
+  @JsonKey(defaultValue: [])
+  final List<int> likedBy;
+
+  @JsonKey(defaultValue: false)
+  bool isLikedByUser;
+
+  @JsonKey(defaultValue: [])
+  List<Comment> replies;
+
+  final DateTime createdAt;
+
+  @JsonKey(name: "user")
+  final CommentUser? user;
 
   Comment({
     required this.id,
@@ -27,13 +33,12 @@ class Comment {
     required this.postId,
     required this.userId,
     this.parentId,
-    this.likesCount = 0,
+    required this.likesCount,
     required this.likedBy,
+    this.isLikedByUser = false,
+    this.replies = const [],
     required this.createdAt,
-    required this.updatedAt,
-    this.mentionedUserIds,
     this.user,
-    this.replies,
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) =>
@@ -41,22 +46,24 @@ class Comment {
 
   Map<String, dynamic> toJson() => _$CommentToJson(this);
 }
-
 @JsonSerializable()
-class UserInfo {
+class CommentUser {
   final int id;
-  final String? name;
-  final String? profilePicture;
 
-  UserInfo({required this.id, this.name, this.profilePicture});
+  @JsonKey(name: "fullName")
+  final String fullName;
 
-  factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(
-      id: json['id'],
-      name: json['name'],
-      profilePicture: json['profilePicture'],
-    );
-  }
+  @JsonKey(name: "image_url")
+  final dynamic imageUrl; // <-- IMPORTANT
 
-  Map<String, dynamic> toJson() => _$UserInfoToJson(this);
+  CommentUser({
+    required this.id,
+    required this.fullName,
+    this.imageUrl,
+  });
+
+  factory CommentUser.fromJson(Map<String, dynamic> json) =>
+      _$CommentUserFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CommentUserToJson(this);
 }

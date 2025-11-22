@@ -37,6 +37,9 @@ class CompanyPost {
   final CompanyInfo? company;
   List<Comment>? comments;
 
+  @JsonKey(defaultValue: false)
+  bool isLiked;
+  
   CompanyPost({
     required this.id,
     required this.title,
@@ -53,6 +56,7 @@ class CompanyPost {
     required this.updatedAt,
     this.company,
     this.comments,
+    this.isLiked = false,
   });
 
   factory CompanyPost.fromJson(Map<String, dynamic> json) =>
@@ -120,4 +124,20 @@ class CompanyInfo {
       _$CompanyInfoFromJson(json);
 
   Map<String, dynamic> toJson() => _$CompanyInfoToJson(this);
+}
+
+
+
+
+@JsonSerializable()
+class PostLikeResponse {
+  final String action;
+  final int likesCount;
+
+  PostLikeResponse(this.action, this.likesCount);
+
+  factory PostLikeResponse.fromJson(Map<String, dynamic> json) =>
+      _$PostLikeResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PostLikeResponseToJson(this);
 }

@@ -10,7 +10,7 @@ part of 'post_api_service.dart';
 
 class _PostApiService implements PostApiService {
   _PostApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.49.69.250:3000';
+    baseUrl ??= 'http://10.247.58.250:3000';
   }
 
   final Dio _dio;
@@ -23,9 +23,15 @@ class _PostApiService implements PostApiService {
   Future<PaginatedPostsResponse> getAllPosts({
     int page = 1,
     int limit = 15,
+    int? userId,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'page': page, r'limit': limit};
+    final queryParameters = <String, dynamic>{
+      r'page': page,
+      r'limit': limit,
+      r'userId': userId,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<PaginatedPostsResponse>(
@@ -54,9 +60,15 @@ class _PostApiService implements PostApiService {
     int companyId, {
     int page = 1,
     int limit = 15,
+    int? userId,
   }) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'page': page, r'limit': limit};
+    final queryParameters = <String, dynamic>{
+      r'page': page,
+      r'limit': limit,
+      r'userId': userId,
+    };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<PaginatedPostsResponse>(
@@ -108,13 +120,16 @@ class _PostApiService implements PostApiService {
   }
 
   @override
-  Future<dynamic> togglePostLike(int postId, Map<String, int> body) async {
+  Future<PostLikeResponse> togglePostLike(
+    int postId,
+    Map<String, int> body,
+  ) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body);
-    final _options = _setStreamType<dynamic>(
+    final _options = _setStreamType<PostLikeResponse>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -124,8 +139,14 @@ class _PostApiService implements PostApiService {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    final _result = await _dio.fetch(_options);
-    final _value = _result.data;
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late PostLikeResponse _value;
+    try {
+      _value = PostLikeResponse.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
     return _value;
   }
 
@@ -189,7 +210,7 @@ class _PostApiService implements PostApiService {
   }
 
   @override
-  Future<dynamic> toggleCommentLike(
+  Future<PostLikeResponse> toggleCommentLike(
     int commentId,
     Map<String, int> body,
   ) async {
@@ -198,7 +219,7 @@ class _PostApiService implements PostApiService {
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body);
-    final _options = _setStreamType<dynamic>(
+    final _options = _setStreamType<PostLikeResponse>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -208,8 +229,44 @@ class _PostApiService implements PostApiService {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    final _result = await _dio.fetch(_options);
-    final _value = _result.data;
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late PostLikeResponse _value;
+    try {
+      _value = PostLikeResponse.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<List<Comment>> getCommentsforPost(int postId, int userId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{r'userId': userId};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<List<Comment>>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/posts/${postId}/comments/user-likes',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<Comment> _value;
+    try {
+      _value =
+          _result.data!
+              .map((dynamic i) => Comment.fromJson(i as Map<String, dynamic>))
+              .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options);
+      rethrow;
+    }
     return _value;
   }
 

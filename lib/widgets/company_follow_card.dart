@@ -8,7 +8,7 @@ Widget buildCompanyFollowCard(
   NetworkProvider provider,
   Company company,
 ) {
-  final isFollowing = provider.following.contains(company.id);
+  final isFollowing = company.isFollowed;
 
   return GestureDetector(
     onTap: () {
@@ -64,7 +64,7 @@ Widget buildCompanyFollowCard(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                provider.toggleFollow(company.id);
+                provider.toggleFollowCompany(company);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: isFollowing ? Colors.blue : Colors.white,

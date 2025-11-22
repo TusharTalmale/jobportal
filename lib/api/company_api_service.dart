@@ -54,14 +54,14 @@ abstract class CompanyApiService {
   Future<void> deleteCompany(@Path("id") int id);
 
     // Toggle follow
-  @POST("/company/{companyId}/user/{userId}/toggle-follow")
+  @POST("/api/company/{companyId}/user/{userId}/toggle-follow")
   Future<void> toggleFollowCompany(
     @Path("companyId") int companyId,
     @Path("userId") int userId,
   );
 
   // Get companies followed by user
-  @GET("/user/{userId}/followed-companies")
+  @GET("/api/user/{userId}/followed-companies")
   Future<List<Company>> getFollowedCompanies(
     @Path("userId") int userId,
   );

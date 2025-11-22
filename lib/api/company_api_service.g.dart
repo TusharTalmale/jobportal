@@ -10,7 +10,7 @@ part of 'company_api_service.dart';
 
 class _CompanyApiService implements CompanyApiService {
   _CompanyApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'http://10.49.69.250:3000';
+    baseUrl ??= 'http://10.247.58.250:3000';
   }
 
   final Dio _dio;
@@ -248,7 +248,7 @@ class _CompanyApiService implements CompanyApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/company/${companyId}/user/${userId}/toggle-follow',
+            '/api/company/${companyId}/user/${userId}/toggle-follow',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -267,7 +267,7 @@ class _CompanyApiService implements CompanyApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/user/${userId}/followed-companies',
+            '/api/user/${userId}/followed-companies',
             queryParameters: queryParameters,
             data: _data,
           )

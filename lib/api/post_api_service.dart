@@ -14,21 +14,22 @@ abstract class PostApiService {
   Future<PaginatedPostsResponse> getAllPosts({
     @Query("page") int page = 1,
     @Query("limit") int limit = 15,
+    @Query("userId") int? userId,
   });
-
 
   @GET(ApiConstants.companyPosts)
   Future<PaginatedPostsResponse> getPostsByCompany(
     @Path("companyId") int companyId, {
     @Query("page") int page = 1,
     @Query("limit") int limit = 15,
+    @Query("userId") int? userId,
   });
 
   @GET(ApiConstants.postById)
   Future<CompanyPost> getPostById(@Path("postId") int postId);
 
   @POST(ApiConstants.togglePostLike)
-  Future<dynamic> togglePostLike(
+  Future<PostLikeResponse> togglePostLike(
     @Path("postId") int postId,
     @Body() Map<String, int> body,
   );
@@ -46,16 +47,22 @@ abstract class PostApiService {
   );
 
   @POST(ApiConstants.toggleCommentLike)
-  Future<dynamic> toggleCommentLike(
+  Future<PostLikeResponse> toggleCommentLike(
     @Path("commentId") int commentId,
     @Body() Map<String, int> body,
   );
 
-  @DELETE(ApiConstants.deleteComment)
+  @GET("/api/posts/{postId}/comments/user-likes")
+  Future<List<Comment>> getCommentsforPost(
+    @Path("postId") int postId,
+    @Query("userId") int userId,
+  );
+  @DELETE("/api/comments/{commentId}")
   Future<void> deleteComment(
     @Path("commentId") int commentId,
     @Body() Map<String, int> body,
   );
+
   @PUT(ApiConstants.deleteComment)
   Future<Comment> updateComment(
     @Path("commentId") int commentId,

@@ -20,7 +20,8 @@ class Company {
   @JsonKey(name: 'company_gallery')
   final List<String>? companyGallery;
 
-  final int? followersCount;
+  int? followersCount; 
+
   final String? industry;
   final String? email;
   final String? phone;
@@ -34,7 +35,7 @@ class Company {
   final List<Job>? companyJobs;
 
   @JsonKey(defaultValue: false)
-  final bool isFollowed;
+  bool isFollowed; 
 
   static List<int>? _intList(dynamic value) {
     if (value == null) return null;

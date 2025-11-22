@@ -264,8 +264,8 @@ bool get isCompanyLoadingMore => _companyLoadMore;
         companyId,
         _currentUserId!,
       );
-      _selectedCompany = response.company;
-      _selectedCompanyJobs = response.jobs;
+      _selectedCompany = response.data.company;
+      _selectedCompanyJobs = response.data.jobs;
     } catch (e) {
       _errorMessage = "Failed to load company details: ${e.toString()}";
     }

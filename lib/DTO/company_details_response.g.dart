@@ -9,16 +9,28 @@ part of 'company_details_response.dart';
 CompanyDetailsResponse _$CompanyDetailsResponseFromJson(
   Map<String, dynamic> json,
 ) => CompanyDetailsResponse(
-  company: Company.fromJson(json['company'] as Map<String, dynamic>),
-  jobs:
-      (json['jobs'] as List<dynamic>)
-          .map((e) => Job.fromJson(e as Map<String, dynamic>))
-          .toList(),
+  success: json['success'] as bool,
+  data: CompanyDetails.fromJson(json['data'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$CompanyDetailsResponseToJson(
   CompanyDetailsResponse instance,
 ) => <String, dynamic>{
-  'company': instance.company.toJson(),
-  'jobs': instance.jobs.map((e) => e.toJson()).toList(),
+  'success': instance.success,
+  'data': instance.data.toJson(),
 };
+
+CompanyDetails _$CompanyDetailsFromJson(Map<String, dynamic> json) =>
+    CompanyDetails(
+      company: Company.fromJson(json['company'] as Map<String, dynamic>),
+      jobs:
+          (json['jobs'] as List<dynamic>)
+              .map((e) => Job.fromJson(e as Map<String, dynamic>))
+              .toList(),
+    );
+
+Map<String, dynamic> _$CompanyDetailsToJson(CompanyDetails instance) =>
+    <String, dynamic>{
+      'company': instance.company.toJson(),
+      'jobs': instance.jobs.map((e) => e.toJson()).toList(),
+    };

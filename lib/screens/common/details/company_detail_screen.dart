@@ -308,8 +308,11 @@ const SizedBox(height: 12),
     required bool isFollowButton,
   }) {
     final provider = Provider.of<NetworkProvider>(context);
-    final isFollowing = provider.following.contains(company.id);
-
+    // The `company` object from JobProvider might not be the same instance
+    // as the one that NetworkProvider would update.
+    // It's safer to listen to the JobProvider's company object for the follow state.
+    final isFollowing = company.isFollowed;
+    
     if (isFollowButton) {
       return Container(
         height: 44,
@@ -320,7 +323,7 @@ const SizedBox(height: 12),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => provider.toggleFollow(company.id),
+            onTap: () => provider.toggleFollowCompany(company),
             borderRadius: BorderRadius.circular(8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

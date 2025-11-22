@@ -243,7 +243,7 @@ class CompanyPostCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Consumer<NetworkProvider>(
               builder: (context, provider, child) {
-                final isLiked = provider.likedPosts.contains(post.id);
+                final isLiked = post.isLiked;
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -254,7 +254,16 @@ class CompanyPostCard extends StatelessWidget {
                       iconColor: isLiked ? Colors.red : Colors.grey,
                       label:
                           '${post.likesCount} Like${post.likesCount != 1 ? 's' : ''}',
-                      onTap: () => provider.toggleLike(post.id, currentUserId),
+                      onTap: () {
+                        final provider = Provider.of<NetworkProvider>(
+                          context,
+                          listen: false,
+                        );
+                        final userId = provider.currentUserId;
+                        if (userId != null) {
+                          provider.toggleLike(post.id, userId);
+                        }
+                      },
                     ),
                     // Comment Button
                     _buildActionButton(

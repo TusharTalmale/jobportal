@@ -18,20 +18,17 @@ Comment _$CommentFromJson(Map<String, dynamic> json) => Comment(
           ?.map((e) => (e as num).toInt())
           .toList() ??
       [],
-  createdAt: DateTime.parse(json['createdAt'] as String),
-  updatedAt: DateTime.parse(json['updatedAt'] as String),
-  mentionedUserIds:
-      (json['mentionedUserIds'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList(),
-  user:
-      json['user'] == null
-          ? null
-          : UserInfo.fromJson(json['user'] as Map<String, dynamic>),
+  isLikedByUser: json['isLikedByUser'] as bool? ?? false,
   replies:
       (json['replies'] as List<dynamic>?)
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
-          .toList(),
+          .toList() ??
+      [],
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  user:
+      json['user'] == null
+          ? null
+          : CommentUser.fromJson(json['user'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
@@ -42,21 +39,21 @@ Map<String, dynamic> _$CommentToJson(Comment instance) => <String, dynamic>{
   'parentId': instance.parentId,
   'likesCount': instance.likesCount,
   'likedBy': instance.likedBy,
+  'isLikedByUser': instance.isLikedByUser,
+  'replies': instance.replies.map((e) => e.toJson()).toList(),
   'createdAt': instance.createdAt.toIso8601String(),
-  'updatedAt': instance.updatedAt.toIso8601String(),
-  'mentionedUserIds': instance.mentionedUserIds,
   'user': instance.user?.toJson(),
-  'replies': instance.replies?.map((e) => e.toJson()).toList(),
 };
 
-UserInfo _$UserInfoFromJson(Map<String, dynamic> json) => UserInfo(
+CommentUser _$CommentUserFromJson(Map<String, dynamic> json) => CommentUser(
   id: (json['id'] as num).toInt(),
-  name: json['name'] as String?,
-  profilePicture: json['profilePicture'] as String?,
+  fullName: json['fullName'] as String,
+  imageUrl: json['image_url'],
 );
 
-Map<String, dynamic> _$UserInfoToJson(UserInfo instance) => <String, dynamic>{
-  'id': instance.id,
-  'name': instance.name,
-  'profilePicture': instance.profilePicture,
-};
+Map<String, dynamic> _$CommentUserToJson(CommentUser instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'fullName': instance.fullName,
+      'image_url': instance.imageUrl,
+    };
