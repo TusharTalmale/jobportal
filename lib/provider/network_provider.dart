@@ -60,11 +60,9 @@ class NetworkProvider with ChangeNotifier {
   CompanyPost? get currentPost => _currentPost;
   bool get isPostDetailLoading => _isPostDetailLoading;
 
-  List<CompanyPost> getPostsForCompany(int id) =>
-      _companyPosts[id] ?? [];
+  List<CompanyPost> getPostsForCompany(int id) => _companyPosts[id] ?? [];
 
-  bool isCompanyPostsLoading(int id) =>
-      _companyPostsLoading[id] ?? false;
+  bool isCompanyPostsLoading(int id) => _companyPostsLoading[id] ?? false;
 
   bool canLoadMoreCompanyPosts(int id) {
     return (_companyPostsCurrentPage[id] ?? 1) <
@@ -74,9 +72,8 @@ class NetworkProvider with ChangeNotifier {
   // -----------------------------
   // Fetch Feed Posts
   // -----------------------------
- 
-  Future<void> fetchPosts({bool isRefresh = false}) async {
 
+  Future<void> fetchPosts({bool isRefresh = false}) async {
     if (isRefresh) {
       _currentPage = 1;
       _posts.clear();
@@ -94,8 +91,9 @@ class NetworkProvider with ChangeNotifier {
       _posts.addAll(resp.data.posts);
       _hasNext = resp.data.hasNext;
       _currentPage = resp.data.currentPage + 1;
+      _errorMessage = null;
     } catch (e) {
-      _errorMessage = "Could not load posts";
+      _errorMessage = "Could not load posts: $e";
     }
 
     _isLoading = false;
@@ -105,8 +103,10 @@ class NetworkProvider with ChangeNotifier {
   // -----------------------------
   // Fetch Company Posts
   // -----------------------------
-  Future<void> fetchPostsByCompany(int companyId,
-      {bool isRefresh = false}) async {
+  Future<void> fetchPostsByCompany(
+    int companyId, {
+    bool isRefresh = false,
+  }) async {
     _companyPostsLoading[companyId] = true;
     notifyListeners();
 
@@ -131,8 +131,10 @@ class NetworkProvider with ChangeNotifier {
       if (resp.data.hasNext) {
         _companyPostsCurrentPage[companyId] = resp.data.currentPage + 1;
       }
+      _errorMessage = null;
     } catch (e) {
-      print("Company posts error: $e");
+      debugPrint("--- Company posts error: $e");
+      _errorMessage = "Could not load company posts: $e";
     }
 
     _companyPostsLoading[companyId] = false;
@@ -184,10 +186,9 @@ class NetworkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _postApiService.togglePostLike(
-        postId,
-        {"userId": userId},
-      );
+      final res = await _postApiService.togglePostLike(postId, {
+        "userId": userId,
+      });
 
       post.likesCount = res.likesCount;
       post.isLiked = res.action == "liked";
@@ -228,10 +229,7 @@ class NetworkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _companyApiService.toggleFollowCompany(
-        company.id,
-        _currentUserId!,
-      );
+      await _companyApiService.toggleFollowCompany(company.id, _currentUserId!);
     } catch (_) {
       company.isFollowed = oldStatus;
       company.followersCount = oldCount;
@@ -244,10 +242,10 @@ class NetworkProvider with ChangeNotifier {
   // -----------------------------
   Future<Comment?> addComment(int postId, String text, int userId) async {
     try {
-      final comment = await _postApiService.addComment(
-        postId,
-        {"text": text, "userId": userId},
-      );
+      final comment = await _postApiService.addComment(postId, {
+        "text": text,
+        "userId": userId,
+      });
 
       CompanyPost? post = _findPost(postId);
       if (post != null) {
@@ -263,12 +261,15 @@ class NetworkProvider with ChangeNotifier {
   }
 
   Future<Comment?> addReplyToComment(
-      int parentId, String text, int userId) async {
+    int parentId,
+    String text,
+    int userId,
+  ) async {
     try {
-      final reply = await _postApiService.addReplyToComment(
-        parentId,
-        {"text": text, "userId": userId},
-      );
+      final reply = await _postApiService.addReplyToComment(parentId, {
+        "text": text,
+        "userId": userId,
+      });
 
       _addReplyRecursive(_currentPost?.comments, parentId, reply);
 
@@ -280,7 +281,10 @@ class NetworkProvider with ChangeNotifier {
   }
 
   bool _addReplyRecursive(
-      List<Comment>? comments, int parentId, Comment reply) {
+    List<Comment>? comments,
+    int parentId,
+    Comment reply,
+  ) {
     if (comments == null) return false;
 
     for (var c in comments) {
@@ -305,8 +309,9 @@ class NetworkProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final res =
-          await _postApiService.toggleCommentLike(c.id, {'userId': userId});
+      final res = await _postApiService.toggleCommentLike(c.id, {
+        'userId': userId,
+      });
 
       c.isLikedByUser = res.action == "liked";
       c.likesCount = res.likesCount;
@@ -320,9 +325,9 @@ class NetworkProvider with ChangeNotifier {
 
   Future<void> deleteComment(int commentId, int postId, int userId) async {
     try {
-      await _postApiService.deleteComment(
-        commentId,{'userId' : currentUserId!}
-      );
+      await _postApiService.deleteComment(commentId, {
+        'userId': currentUserId!,
+      });
 
       CompanyPost? post = _findPost(postId);
 
@@ -352,13 +357,12 @@ class NetworkProvider with ChangeNotifier {
     return false;
   }
 
-  Future<Comment?> updateComment(
-      int commentId, String text, int userId) async {
+  Future<Comment?> updateComment(int commentId, String text, int userId) async {
     try {
-      final updated = await _postApiService.updateComment(
-        commentId,
-        {'text': text, 'userId': userId},
-      );
+      final updated = await _postApiService.updateComment(commentId, {
+        'text': text,
+        'userId': userId,
+      });
 
       _updateCommentRecursive(_currentPost?.comments, updated);
       notifyListeners();
@@ -369,8 +373,7 @@ class NetworkProvider with ChangeNotifier {
     }
   }
 
-  bool _updateCommentRecursive(
-      List<Comment>? comments, Comment updated) {
+  bool _updateCommentRecursive(List<Comment>? comments, Comment updated) {
     if (comments == null) return false;
 
     for (var i = 0; i < comments.length; i++) {
@@ -385,21 +388,19 @@ class NetworkProvider with ChangeNotifier {
     return false;
   }
 
-Future<List<Comment>> loadComments(int postId) async {
-  try {
-    final userId = _currentUserId;
+  Future<List<Comment>> loadComments(int postId) async {
+    try {
+      final userId = _currentUserId;
 
-    final response = await _postApiService.getCommentsforPost(
-      postId,
-      userId!,
-    );
+      final response = await _postApiService.getCommentsforPost(
+        postId,
+        userId!,
+      );
 
-    return response;
-  } catch (e) {
-    debugPrint("Failed loading comments: $e");
-    return [];
+      return response;
+    } catch (e) {
+      debugPrint("Failed loading comments: $e");
+      return [];
+    }
   }
-}
-
-  
 }

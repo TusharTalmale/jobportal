@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_annotation/json_annotation.dart';
 import 'package:jobportal/model.dart/comment.dart';
 
@@ -15,14 +17,15 @@ class CompanyPost {
   @JsonKey(defaultValue: PostType.text, unknownEnumValue: PostType.text)
   final PostType postType;
 
-  @JsonKey(defaultValue: [])
-  final List<String> tags;
+@JsonKey(fromJson: _tagsFromJson, defaultValue: [])
+final List<String> tags;
+
 
   @JsonKey(defaultValue: 0)
   int likesCount;
 
-  @JsonKey(defaultValue: [])
-  List<int> likedBy;
+@JsonKey(fromJson: _intListFromJson, defaultValue: [])
+List<int> likedBy;
 
   @JsonKey(defaultValue: 0)
   int commentsCount;
@@ -63,6 +66,53 @@ class CompanyPost {
       _$CompanyPostFromJson(json);
 
   Map<String, dynamic> toJson() => _$CompanyPostToJson(this);
+
+  static List<String> _tagsFromJson(dynamic value) {
+  if (value == null) return [];
+
+  // Case 1: Already a List
+  if (value is List) {
+    return value.map((e) => e.toString()).toList();
+  }
+
+  // Case 2: Backend sent a JSON string
+  if (value is String) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toList();
+      }
+    } catch (_) {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+static List<int> _intListFromJson(dynamic value) {
+  if (value == null) return [];
+
+  // Case 1: Already a List<int>
+  if (value is List) {
+    return value.map((e) => int.tryParse(e.toString()) ?? 0).toList();
+  }
+
+  // Case 2: String "[1,2,3]"
+  if (value is String) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is List) {
+        return decoded.map((e) => int.tryParse(e.toString()) ?? 0).toList();
+      }
+    } catch (_) {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -141,3 +191,4 @@ class PostLikeResponse {
 
   Map<String, dynamic> toJson() => _$PostLikeResponseToJson(this);
 }
+

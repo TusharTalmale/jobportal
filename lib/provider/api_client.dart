@@ -7,6 +7,7 @@ import 'package:jobportal/api/post_api_service.dart';
 import 'package:jobportal/api/chat_api_service.dart';
 import 'package:jobportal/api/profile_api_service.dart';
 import 'package:jobportal/api/job_application_api_service.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 /// A singleton class to manage the Dio instance and API services.
 /// This ensures that we have a single point of configuration for networking.
@@ -37,7 +38,15 @@ class ApiClient {
 
     // Add logging interceptor
     _dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true),
+      PrettyDioLogger(
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+        compact: true,
+        maxWidth: 90,
+      ),
     );
   }
 

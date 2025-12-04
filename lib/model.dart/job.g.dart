@@ -10,6 +10,9 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
   id: (json['id'] as num).toInt(),
   jobTitle: json['jobTitle'] as String,
   jobLocation: json['jobLocation'] as String?,
+  salaryType: json['salaryType'] as String?,
+  minSalary: json['minSalary'] as String?,
+  maxSalary: json['maxSalary'] as String?,
   salary: json['salary'] as String?,
   jobType: json['jobType'] as String?,
   workpLaceType: json['workpLaceType'] as String?,
@@ -21,8 +24,8 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
   jobDescription: json['jobDescription'] as String?,
   requirements: json['requirements'] as String?,
   companyId: (json['companyId'] as num?)?.toInt(),
-  lattitude: _toDouble(json['lattitude']),
-  longitude: _toDouble(json['longitude']),
+  lattitude: Job._toDouble(json['lattitude']),
+  longitude: Job._toDouble(json['longitude']),
   postedBy: (json['postedBy'] as num?)?.toInt(),
   postedAt:
       json['postedAt'] == null
@@ -32,12 +35,19 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
       json['expiresAt'] == null
           ? null
           : DateTime.parse(json['expiresAt'] as String),
-  applicantsIds: Job._intList(json['applicantsIds']),
+  applicantsIds:
+      json['applicantsIds'] == null ? [] : Job._intList(json['applicantsIds']),
   status: json['status'] as String?,
   viewsCount: (json['viewsCount'] as num?)?.toInt(),
   isApplied: json['isApplied'] as bool? ?? false,
   isExpired: json['isExpired'] as bool? ?? false,
   applicationStatus: json['applicationStatus'] as String? ?? 'none',
+  totalApplications: (json['totalApplications'] as num?)?.toInt(),
+  shortlistedCount: (json['shortlistedCount'] as num?)?.toInt(),
+  rejectedCount: (json['rejectedCount'] as num?)?.toInt(),
+  pendingCount: (json['pendingCount'] as num?)?.toInt(),
+  selectedCount: (json['selectedCount'] as num?)?.toInt(),
+  promoteJob: json['promoteJob'] as bool? ?? false,
   company:
       json['company'] == null
           ? null
@@ -48,6 +58,9 @@ Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
   'id': instance.id,
   'jobTitle': instance.jobTitle,
   'jobLocation': instance.jobLocation,
+  'salaryType': instance.salaryType,
+  'minSalary': instance.minSalary,
+  'maxSalary': instance.maxSalary,
   'salary': instance.salary,
   'jobType': instance.jobType,
   'workpLaceType': instance.workpLaceType,
@@ -70,5 +83,11 @@ Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
   'isApplied': instance.isApplied,
   'isExpired': instance.isExpired,
   'applicationStatus': instance.applicationStatus,
+  'totalApplications': instance.totalApplications,
+  'shortlistedCount': instance.shortlistedCount,
+  'rejectedCount': instance.rejectedCount,
+  'pendingCount': instance.pendingCount,
+  'selectedCount': instance.selectedCount,
+  'promoteJob': instance.promoteJob,
   'company': instance.company?.toJson(),
 };

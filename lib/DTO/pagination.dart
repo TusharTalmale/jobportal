@@ -11,7 +11,7 @@ class Pagination {
   final int totalItems;
 
   @JsonKey(defaultValue: 0)
-  final int totalJobs;
+  final int? totalJobs;
 
   final bool hasNext;
   final bool hasPrev;
@@ -21,7 +21,7 @@ class Pagination {
     required this.currentPage,
     required this.totalPages,
     required this.totalItems,
-    required this.totalJobs,
+    this.totalJobs,
     required this.hasNext,
     required this.hasPrev,
     required this.limit,

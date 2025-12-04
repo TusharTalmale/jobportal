@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jobportal/provider/job_application_provider.dart';
 import 'package:jobportal/widgets/applied_job_card.dart';
+import 'package:jobportal/widgets/common_job_card.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider/job_provider.dart';
-import '../../widgets/common_job_card.dart';
 import '../../model.dart/job.dart'; // Assuming Job model is here
 
 class SavedJobsScreen extends StatefulWidget {
@@ -24,12 +24,23 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final jobApplicationProvider =
+          Provider.of<JobApplicationProvider>(context, listen: false);
+      if (jobApplicationProvider.applications.isEmpty) {
+        jobApplicationProvider.loadFirstPage();
+      }
+    });
     _tabController = TabController(length: 2, vsync: this);
     // Add listener to update UI on search query change
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
       });
+    });
+    _tabController.addListener(() {
+      // To update the visibility of the "Delete All" button
+      setState(() {});
     });
   }
 
@@ -62,12 +73,10 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
                     ),
                   ),
                   Consumer<JobProvider>(
-                    builder: (context, provider, _) {
+                    builder: (context, jobProvider, _) {
                       final showDelete =
-                          (_tabController.index == 0 &&
-                              provider.savedJobs.isNotEmpty) ||
-                          (_tabController.index == 1 &&
-                              provider.appliedJobs.isNotEmpty);
+                          _tabController.index == 0 &&
+                          jobProvider.savedJobs.isNotEmpty;
                       if (!showDelete) return const SizedBox();
                       return GestureDetector(
                         onTap: () => _showDeleteAllConfirmation(context),
@@ -144,7 +153,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
   }
 
   void _showDeleteAllConfirmation(BuildContext context) {
-    final provider = Provider.of<JobProvider>(context, listen: false);
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
     final isSavedTab = _tabController.index == 0;
 
     showDialog(
@@ -162,11 +171,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
             ),
             TextButton(
               onPressed: () {
-                if (isSavedTab) {
-                  provider.deleteAllJobs();
-                } else {
-                  provider.deleteAllAppliedJobs();
-                }
+                jobProvider.deleteAllJobs();
                 Navigator.of(ctx).pop();
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -222,63 +227,67 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
       },
     );
   }
-Widget _buildAppliedJobsList() {
-  return Consumer<JobApplicationProvider>(
-    builder: (context, provider, _) {
-      if (provider.isLoading && provider.applications.isEmpty) {
-        return _buildShimmerList();
-      }
 
-      if (provider.applications.isEmpty) {
-        return const EmptyStateWidget(
-          title: "No Applied Jobs",
-          message: "Your applied jobs will appear here.",
-        );
-      }
+  Widget _buildAppliedJobsList() {
+    return Consumer<JobApplicationProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading && provider.applications.isEmpty) {
+          return _buildShimmerList();
+        }
 
-      final apps = provider.applications;
+        if (provider.applications.isEmpty) {
+          return const EmptyStateWidget(
+            title: "No Applied Jobs",
+            message:
+                "You haven't applied for any jobs yet. Your applied jobs will appear here.",
+          );
+        }
 
-      return NotificationListener<ScrollNotification>(
-        onNotification: (scrollInfo) {
-          if (!provider.isLoadMore &&
-              scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-            provider.loadMore();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: apps.length + (provider.isLoadMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == apps.length) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
+        final apps = provider.applications;
+
+        return NotificationListener<ScrollNotification>(
+          onNotification: (scrollInfo) {
+            if (!provider.isLoadMore &&
+                scrollInfo.metrics.pixels ==
+                    scrollInfo.metrics.maxScrollExtent) {
+              provider.loadMore();
             }
-
-            return AppliedJobCard(application: apps[index]);
+            return false;
           },
-        ),
-      );
-    },
-  );
-}
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: apps.length + (provider.isLoadMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == apps.length) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-Widget _buildShimmerList() {
-  return ListView.builder(
-    padding: const EdgeInsets.all(16),
-    itemCount: 6,
-    itemBuilder: (_, __) => Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      height: 110,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-  );
-}
+              return AppliedJobCard(application: apps[index]);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 6,
+      itemBuilder:
+          (_, __) => Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            height: 110,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+    );
+  }
 
   Widget _buildEmptySearchResults() {
     return Center(
@@ -528,8 +537,11 @@ Widget _buildMonthSection(String month, List<Job> jobs) {
         shrinkWrap: true,
         itemCount: jobs.length,
         itemBuilder: (context, index) {
-          final job = jobs[index];
-          return JobCard(job: job, showMoreOptions: true);
+          final job = jobs[index]; // This is a Job object
+          return JobCard(
+            job: job,
+            showMoreOptions: true,
+          ); // Assuming JobCard exists and takes a Job
         },
         separatorBuilder: (context, index) => const SizedBox(height: 12),
       ),

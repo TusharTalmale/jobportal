@@ -31,7 +31,6 @@ class JobProvider extends ChangeNotifier {
   List<Job> _selectedCompanyJobs = [];
   bool _isCompanyDetailsLoading = false;
 
-
   // --- Pagination State ---
   int _currentPage = 1;
   bool _hasNextPage = true;
@@ -42,7 +41,6 @@ class JobProvider extends ChangeNotifier {
   String _userType = 'user';
 
   final List<Job> _savedJobs = [];
-  final List<Job> _appliedJobs = []; // Add state for applied jobs
   final List<Job> _recentJobs = [];
 
   // --- Controllers for search fields ---
@@ -120,8 +118,6 @@ class JobProvider extends ChangeNotifier {
   // --- Constructor ---
   JobProvider() {
     _loadUserDataAndFetchJobs();
-
-  
   }
 
   /// Load user data from storage and fetch jobs
@@ -182,7 +178,6 @@ class JobProvider extends ChangeNotifier {
 
   List<Job> get filteredJobs => _jobs; // Returns the server-filtered list
   List<Job> get savedJobs => _savedJobs;
-  List<Job> get appliedJobs => _appliedJobs;
   List<Job> get recentJobs => _recentJobs;
   List<Company> get allCompanies => _companies;
   Map<String, Set<String>> get activeFilters => _activeFilters;
@@ -207,18 +202,17 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
+  // Company Pagination State
+  List<Company> _companies = [];
+  bool _companyLoading = false;
+  bool _companyLoadMore = false;
 
-// Company Pagination State
-List<Company> _companies = [];
-bool _companyLoading = false;
-bool _companyLoadMore = false;
+  int _companyPage = 1;
+  bool _companyHasNext = true;
 
-int _companyPage = 1;
-bool _companyHasNext = true;
-
-List<Company> get companies => _companies;
-bool get isCompanyLoading => _companyLoading;
-bool get isCompanyLoadingMore => _companyLoadMore;
+  List<Company> get companies => _companies;
+  bool get isCompanyLoading => _companyLoading;
+  bool get isCompanyLoadingMore => _companyLoadMore;
 
   // --- Job Details Method ---
   Future<void> getJobById(int jobId) async {
@@ -229,7 +223,8 @@ bool get isCompanyLoadingMore => _companyLoadMore;
     try {
       // Explicitly type the response for better readability and type safety.
       final JobDetailsResponse response = await _jobApiService.getJobDetails(
-        jobId,  _currentUserId!,
+        jobId,
+        _currentUserId!,
       );
 
       _selectedJob = response.job;
@@ -244,7 +239,6 @@ bool get isCompanyLoadingMore => _companyLoadMore;
     notifyListeners();
   }
 
- 
   Future<void> fetchCompanyDetails(int companyId) async {
     _isCompanyDetailsLoading = true;
     _errorMessage = null;
@@ -254,10 +248,8 @@ bool get isCompanyLoadingMore => _companyLoadMore;
       if (_currentUserId == null) {
         throw Exception("User not authenticated to fetch company details.");
       }
-      final CompanyDetailsResponse response = await _companyApiService.getCompanyById(
-        companyId,
-        _currentUserId!,
-      );
+      final CompanyDetailsResponse response = await _companyApiService
+          .getCompanyById(companyId, _currentUserId!);
       _selectedCompany = response.data.company;
       _selectedCompanyJobs = response.data.jobs;
     } catch (e) {
@@ -295,31 +287,6 @@ bool get isCompanyLoadingMore => _companyLoadMore;
     notifyListeners();
   }
 
-  // --- Applied Jobs Methods ---
-  bool isJobApplied(Job job) {
-    return _appliedJobs.any((appliedJob) => appliedJob.id == job.id);
-  }
-
-  void addAppliedJob(Job job) {
-    if (!isJobApplied(job)) {
-      _appliedJobs.add(job);
-      _saveAppliedJobs(); // Persist changes
-      notifyListeners();
-    }
-  }
-
-  void removeJobFromApplied(Job job) {
-    _appliedJobs.removeWhere((j) => j.id == job.id);
-    _saveAppliedJobs(); // Persist changes
-    notifyListeners();
-  }
-
-  void deleteAllAppliedJobs() {
-    _appliedJobs.clear();
-    _saveAppliedJobs(); // Persist changes
-    notifyListeners();
-  }
-
   // --- Recent Jobs Methods ---
   Future<void> addRecentJob(Job job) async {
     // Remove if it already exists to avoid duplicates and move it to the top.
@@ -342,11 +309,6 @@ bool get isCompanyLoadingMore => _companyLoadMore;
     await _storageService.saveString('savedJobIds', savedJobIds.join(','));
   }
 
-  Future<void> _saveAppliedJobs() async {
-    final appliedJobIds = _appliedJobs.map((job) => job.id.toString()).toList();
-    await _storageService.saveString('appliedJobIds', appliedJobIds.join(','));
-  }
-
   Future<void> _loadUserJobs() async {
     // Load saved jobs
     final savedJobIdsString = await _storageService.getString('savedJobIds');
@@ -357,16 +319,6 @@ bool get isCompanyLoadingMore => _companyLoadMore;
       _savedJobs.clear();
       _savedJobs.addAll(
         _jobs.where((j) => savedJobIds.contains(j.id.toString())),
-      );
-    }
-
-    // Load applied jobs
-    final appliedJobIdsString = await _storageService.getString('appliedJobIds');
-    if (appliedJobIdsString != null && appliedJobIdsString.isNotEmpty) {
-      final appliedJobIds = appliedJobIdsString.split(',');
-      _appliedJobs.clear();
-      _appliedJobs.addAll(
-        _jobs.where((j) => appliedJobIds.contains(j.id.toString())),
       );
     }
     notifyListeners();
@@ -402,20 +354,73 @@ bool get isCompanyLoadingMore => _companyLoadMore;
   // ------------------------------------------------------
 
   /// Fetch first page (fresh load)
-  Future<void> loadFirstPage({
-    bool isFilterAction = false,
-  }) async {
+  Future<void> loadFirstPage({bool isFilterAction = false}) async {
     _isLoading = true;
+    print(
+      '\x1B[33m[PROVIDER] Loading first page of jobs...\x1B[0m',
+    ); // Yellow for loading
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final ApiPaginatedJobsResponse response =
-          await _jobApiService.getJobsPaginated(
-        1,
+      final ApiPaginatedJobsResponse response = await _jobApiService
+          .getJobsPaginated(
+            1,
+            10,
+            userId: _currentUserId!,
+            search:
+                designationController.text.isNotEmpty
+                    ? designationController.text
+                    : null,
+            jobType: _jobTypes.isNotEmpty ? _jobTypes.join(',') : null,
+            workpLaceType: _workplace != "On-site" ? _workplace : null,
+            city: _cities.isNotEmpty ? _cities.join(',') : null,
+            minSalary: _salaryRange.start.round(),
+            maxSalary: _salaryRange.end.round(),
+            specialization:
+                _specialization.isNotEmpty ? _specialization.join(',') : null,
+            experience: _experience != "No experience" ? _experience : null,
+            postedDate: _convertPostedDate(_lastUpdate),
+          );
+
+      _jobs.clear();
+      _jobs.addAll(response.jobs);
+
+      _currentPage = response.pagination.currentPage;
+      _hasNextPage = response.pagination.hasNext;
+      print(
+        '\x1B[32m[PROVIDER] Successfully loaded ${response.jobs.length} jobs.\x1B[0m',
+      ); // Green for success
+    } catch (e) {
+      _errorMessage = "Failed to load jobs: $e";
+      print("\x1B[31m❌ loadFirstPage error: $e\x1B[0m"); // Red for error
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    if (!isFilterAction) {
+      _applyFilters();
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (!_hasNextPage || _isLoadMore) return;
+
+    _isLoadMore = true;
+    print(
+      '\x1B[33m[PROVIDER] Loading more jobs (page ${_currentPage + 1})...\x1B[0m',
+    );
+    notifyListeners();
+
+    try {
+      final response = await _jobApiService.getJobsPaginated(
+        _currentPage + 1,
         10,
         userId: _currentUserId!,
-        search: designationController.text.isNotEmpty ? designationController.text : null,
+        search:
+            designationController.text.isNotEmpty
+                ? designationController.text
+                : null,
         jobType: _jobTypes.isNotEmpty ? _jobTypes.join(',') : null,
         workpLaceType: _workplace != "On-site" ? _workplace : null,
         city: _cities.isNotEmpty ? _cities.join(',') : null,
@@ -427,106 +432,82 @@ bool get isCompanyLoadingMore => _companyLoadMore;
         postedDate: _convertPostedDate(_lastUpdate),
       );
 
-      _jobs.clear();
       _jobs.addAll(response.jobs);
 
       _currentPage = response.pagination.currentPage;
       _hasNextPage = response.pagination.hasNext;
+      print(
+        '\x1B[32m[PROVIDER] Successfully loaded ${response.jobs.length} more jobs.\x1B[0m',
+      );
     } catch (e) {
-      _errorMessage = "Failed to load jobs";
-      print("❌ loadFirstPage error: $e");
+      print("\x1B[31m❌ loadMore error: $e\x1B[0m");
     }
 
-    _isLoading = false;
+    _isLoadMore = false;
     notifyListeners();
-    if (!isFilterAction) {
-      _applyFilters();
+  }
+
+  Future<void> loadCompaniesFirstPage({String? search}) async {
+    _companyLoading = true;
+    print('\x1B[33m[PROVIDER] Loading first page of companies...\x1B[0m');
+    notifyListeners();
+
+    try {
+      final response = await _companyApiService.getCompaniesPaginated(
+        1,
+        10,
+        search: search,
+        userId: _currentUserId!,
+      );
+
+      _companies.clear();
+      _companies.addAll(response.companies);
+
+      _companyPage = response.pagination.currentPage;
+      _companyHasNext = response.pagination.hasNext;
+      _errorMessage = null;
+      print(
+        '\x1B[32m[PROVIDER] Successfully loaded ${response.companies.length} companies.\x1B[0m',
+      );
+    } catch (e) {
+      _errorMessage = "Failed to load companies: $e";
+      print("\x1B[31m❌ loadCompaniesFirstPage error: $e\x1B[0m");
     }
+
+    _companyLoading = false;
+    notifyListeners();
   }
 
-Future<void> loadMore() async {
-  if (!_hasNextPage || _isLoadMore) return;
+  Future<void> loadMoreCompanies() async {
+    if (!_companyHasNext || _companyLoadMore) return;
 
-  _isLoadMore = true;
-  notifyListeners();
-
-  try {
-    final response = await _jobApiService.getJobsPaginated(
-      _currentPage + 1,
-      10,
-      userId: _currentUserId!,
-      search: designationController.text.isNotEmpty ? designationController.text : null,
-      jobType: _jobTypes.isNotEmpty ? _jobTypes.join(',') : null,
-      workpLaceType: _workplace != "On-site" ? _workplace : null,
-      city: _cities.isNotEmpty ? _cities.join(',') : null,
-      minSalary: _salaryRange.start.round(),
-      maxSalary: _salaryRange.end.round(),
-      specialization:
-          _specialization.isNotEmpty ? _specialization.join(',') : null,
-      experience: _experience != "No experience" ? _experience : null,
-      postedDate: _convertPostedDate(_lastUpdate),
+    _companyLoadMore = true;
+    print(
+      '\x1B[33m[PROVIDER] Loading more companies (page ${_companyPage + 1})...\x1B[0m',
     );
+    notifyListeners();
 
-    _jobs.addAll(response.jobs);
+    try {
+      final response = await _companyApiService.getCompaniesPaginated(
+        _companyPage + 1,
+        10,
+        userId: _currentUserId!,
+      );
 
-    _currentPage = response.pagination.currentPage;
-    _hasNextPage = response.pagination.hasNext;
-  } catch (e) {
-    print("❌ loadMore error: $e");
+      _companies.addAll(response.companies);
+
+      _companyPage = response.pagination.currentPage;
+      _companyHasNext = response.pagination.hasNext;
+      print(
+        '\x1B[32m[PROVIDER] Successfully loaded ${response.companies.length} more companies.\x1B[0m',
+      );
+    } catch (e) {
+      print("\x1B[31m❌ loadMoreCompanies error: $e\x1B[0m");
+    }
+
+    _companyLoadMore = false;
+    notifyListeners();
   }
-
-  _isLoadMore = false;
-  notifyListeners();
-}
-Future<void> loadCompaniesFirstPage({String? search}) async {
-  _companyLoading = true;
-  notifyListeners();
-
-  try {
-    final response = await _companyApiService.getCompaniesPaginated(
-      1,
-      10,
-      search: search,
-      userId: _currentUserId!,
-    );
-
-    _companies.clear();
-    _companies.addAll(response.companies);
-
-    _companyPage = response.pagination.currentPage;
-    _companyHasNext = response.pagination.hasNext;
-  } catch (e) {
-    print("❌ loadCompaniesFirstPage error: $e");
-  }
-
-  _companyLoading = false;
-  notifyListeners();
-}
-
-Future<void> loadMoreCompanies() async {
-  if (!_companyHasNext || _companyLoadMore) return;
-
-  _companyLoadMore = true;
-  notifyListeners();
-
-  try {
-    final response = await _companyApiService.getCompaniesPaginated(
-      _companyPage + 1,
-      10,
-      userId: _currentUserId!,
-    );
-
-    _companies.addAll(response.companies);
-
-    _companyPage = response.pagination.currentPage;
-    _companyHasNext = response.pagination.hasNext;
-  } catch (e) {
-    print("❌ loadMoreCompanies error: $e");
-  }
-
-  _companyLoadMore = false;
-  notifyListeners();
-}
 
   // --- Filter Methods ---
   /// Initializes the temporary filter states with the current active filters.

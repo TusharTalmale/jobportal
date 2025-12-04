@@ -36,30 +36,44 @@ class PaginatedApplicationsResponse {
   factory PaginatedApplicationsResponse.fromJson(Map<String, dynamic> json) =>
       _$PaginatedApplicationsResponseFromJson(json);
 
-  Map<String, dynamic> toJson() =>
-      _$PaginatedApplicationsResponseToJson(this);
+  Map<String, dynamic> toJson() => _$PaginatedApplicationsResponseToJson(this);
 }
 
 @JsonSerializable()
 class Pagination {
-  final int currentPage;
-  final int totalPages;
-  final int totalItems;
-  final bool hasNext;
-  final bool hasPrev;
-  final int limit;
+  final int? currentPage;
+  final int? totalPages;
+  final int? totalItems;
+  final bool? hasNext;
+  final bool? hasPrev;
+  final int? limit;
 
   Pagination({
-    required this.currentPage,
-    required this.totalPages,
-    required this.totalItems,
-    required this.hasNext,
-    required this.hasPrev,
-    required this.limit,
+    this.currentPage,
+    this.totalPages,
+    this.totalItems,
+    this.hasNext,
+    this.hasPrev,
+    this.limit,
   });
-
-  factory Pagination.fromJson(Map<String, dynamic> json) =>
-      _$PaginationFromJson(json);
+  
+factory Pagination.fromJson(Map<String, dynamic> json) {
+  return Pagination(
+    currentPage: json['currentPage'] is num ? json['currentPage'] as int? : int.tryParse(json['currentPage']?.toString() ?? ''),
+    totalPages: json['totalPages'] is num ? json['totalPages'] as int? : int.tryParse(json['totalPages']?.toString() ?? ''),
+    totalItems: json['totalItems'] is num ? json['totalItems'] as int? : int.tryParse(json['totalItems']?.toString() ?? ''),
+    hasNext: json['hasNext'] as bool? ?? false,
+    hasPrev: json['hasPrev'] as bool? ?? false,
+    limit: json['limit'] is num ? json['limit'] as int? : int.tryParse(json['limit']?.toString() ?? ''),
+  );
+}
 
   Map<String, dynamic> toJson() => _$PaginationToJson(this);
+
+  /// Add default fallback values
+  int get safeCurrentPage => currentPage ?? 1;
+  int get safeTotalPages => totalPages ?? 1;
+  bool get safeHasNext => hasNext ?? false;
+  bool get safeHasPrev => hasPrev ?? false;
+  int get safeLimit => limit ?? 10;
 }

@@ -18,14 +18,12 @@ CompanyPost _$CompanyPostFromJson(Map<String, dynamic> json) => CompanyPost(
         unknownValue: PostType.text,
       ) ??
       PostType.text,
-  tags:
-      (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+  tags: json['tags'] == null ? [] : CompanyPost._tagsFromJson(json['tags']),
   likesCount: (json['likesCount'] as num?)?.toInt() ?? 0,
   likedBy:
-      (json['likedBy'] as List<dynamic>?)
-          ?.map((e) => (e as num).toInt())
-          .toList() ??
-      [],
+      json['likedBy'] == null
+          ? []
+          : CompanyPost._intListFromJson(json['likedBy']),
   commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
   sharesCount: (json['sharesCount'] as num?)?.toInt() ?? 0,
   companyId: (json['companyId'] as num).toInt(),

@@ -43,12 +43,12 @@ Map<String, dynamic> _$PaginatedApplicationsResponseToJson(
 };
 
 Pagination _$PaginationFromJson(Map<String, dynamic> json) => Pagination(
-  currentPage: (json['currentPage'] as num).toInt(),
-  totalPages: (json['totalPages'] as num).toInt(),
-  totalItems: (json['totalItems'] as num).toInt(),
-  hasNext: json['hasNext'] as bool,
-  hasPrev: json['hasPrev'] as bool,
-  limit: (json['limit'] as num).toInt(),
+  currentPage: (json['currentPage'] as num?)?.toInt(),
+  totalPages: (json['totalPages'] as num?)?.toInt(),
+  totalItems: (json['totalItems'] as num?)?.toInt(),
+  hasNext: json['hasNext'] as bool?,
+  hasPrev: json['hasPrev'] as bool?,
+  limit: (json['limit'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$PaginationToJson(Pagination instance) =>

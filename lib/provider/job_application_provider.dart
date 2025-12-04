@@ -52,7 +52,7 @@ class JobApplicationProvider extends ChangeNotifier {
       final res = await _api.getAppliedJobsPaginated(userId, 1, 10);
 
       _applications = res.applications;
-      _hasNext = res.pagination.hasNext;
+      _hasNext = res.pagination.safeHasNext;
       _page = 2;
     } catch (e) {
       print("❌ First page error: $e");
@@ -75,7 +75,7 @@ class JobApplicationProvider extends ChangeNotifier {
       final res = await _api.getAppliedJobsPaginated(userId, _page, 10);
 
       _applications.addAll(res.applications);
-      _hasNext = res.pagination.hasNext;
+      _hasNext = res.pagination.safeHasNext;
       _page++;
     } catch (e) {
       print("❌ loadMore error: $e");
@@ -160,10 +160,7 @@ class JobApplicationProvider extends ChangeNotifier {
     try {
       await _api.addComment(
         id,
-        AddCommentRequest(
-          text: text,
-          authorId: userId,
-        ),
+        AddCommentRequest(text: text, authorId: userId),
       );
       return true;
     } catch (e) {
@@ -176,7 +173,10 @@ class JobApplicationProvider extends ChangeNotifier {
   // UPDATE COMMENT
   // -------------------------------------------------------------
   Future<bool> updateCommentStatus(
-      int appId, String commentId, String status) async {
+    int appId,
+    String commentId,
+    String status,
+  ) async {
     try {
       await _api.updateCommentStatus(
         appId,
@@ -242,7 +242,4 @@ class JobApplicationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
-
-  
 }

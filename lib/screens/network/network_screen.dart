@@ -99,7 +99,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Error loading data',
+                        'Error loading data  ? ${networkProvider.errorMessage ?? 'posts good' } ,, ${  jobProvider.errorMessage ?? 'companies good'}',
                         style: const TextStyle(color: Colors.red),
                       ),
                       const SizedBox(height: 16),
