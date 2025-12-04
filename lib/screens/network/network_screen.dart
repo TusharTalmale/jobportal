@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jobportal/animationsLoading/animated_linking_dots.dart';
 
 import 'package:jobportal/provider/network_provider.dart';
 import 'package:jobportal/provider/job_provider.dart';
@@ -72,7 +73,14 @@ class _NetworkScreenState extends State<NetworkScreen> {
                       networkProvider.posts.isEmpty) ||
                   (jobProvider.isCompanyLoading &&
                       jobProvider.companies.isEmpty)) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: DotLinkLoader(
+                    dotCount: 25,
+                    dotSize: 4,
+                    color: Colors.grey,
+                    addSpeed: Duration(milliseconds: 150),
+                  ),
+                );
               }
 
               // Show error state
@@ -109,6 +117,8 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
               return TabBarView(
                 children: [
+               
+
                   // Posts Tab
                   _buildPostsTab(networkProvider),
                   // Companies Tab
@@ -194,7 +204,14 @@ class _NetworkScreenState extends State<NetworkScreen> {
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(
+                child: DotLinkLoader(
+                  dotCount: 25,
+                  dotSize: 4,
+                  color: Colors.grey,
+                  addSpeed: Duration(milliseconds: 150),
+                ),
+              ),
             ),
           ),
         if (!jobProvider.isCompanyLoadingMore)

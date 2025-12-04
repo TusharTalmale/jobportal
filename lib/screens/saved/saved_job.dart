@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:jobportal/provider/job_application_provider.dart';
+import 'package:jobportal/widgets/applied_job_card.dart';
 import 'package:provider/provider.dart';
 
 import '../../provider/job_provider.dart';
@@ -220,32 +222,63 @@ class _SavedJobsScreenState extends State<SavedJobsScreen>
       },
     );
   }
+Widget _buildAppliedJobsList() {
+  return Consumer<JobApplicationProvider>(
+    builder: (context, provider, _) {
+      if (provider.isLoading && provider.applications.isEmpty) {
+        return _buildShimmerList();
+      }
 
-  Widget _buildAppliedJobsList() {
-    return Consumer<JobProvider>(
-      builder: (context, provider, _) {
-        if (provider.appliedJobs.isEmpty) {
-          return const EmptyStateWidget(
-            title: 'No Applied Jobs',
-            message:
-                'You haven\'t applied for any jobs yet.\nYour application history will appear here.',
-          );
-        }
-        final filtered = _filterJobs(provider.appliedJobs);
-
-        if (filtered.isEmpty && _searchQuery.isNotEmpty) {
-          return _buildEmptySearchResults();
-        }
-
-        final groupedJobs = _groupJobsByMonth(filtered);
-        return _buildGroupedJobListWithHeader(
-          groupedJobs,
-          filtered.length,
-          provider.appliedJobs.length,
+      if (provider.applications.isEmpty) {
+        return const EmptyStateWidget(
+          title: "No Applied Jobs",
+          message: "Your applied jobs will appear here.",
         );
-      },
-    );
-  }
+      }
+
+      final apps = provider.applications;
+
+      return NotificationListener<ScrollNotification>(
+        onNotification: (scrollInfo) {
+          if (!provider.isLoadMore &&
+              scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+            provider.loadMore();
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: apps.length + (provider.isLoadMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == apps.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            return AppliedJobCard(application: apps[index]);
+          },
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildShimmerList() {
+  return ListView.builder(
+    padding: const EdgeInsets.all(16),
+    itemCount: 6,
+    itemBuilder: (_, __) => Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      height: 110,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+  );
+}
 
   Widget _buildEmptySearchResults() {
     return Center(

@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:jobportal/model.dart/job_application_comment.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:jobportal/api/api_constants.dart';
-import 'package:jobportal/model.dart/application_response.dart';
+import 'package:jobportal/DTO/application_response.dart';
 import 'package:jobportal/model.dart/job_application.dart';
 
 part 'job_application_api_service.g.dart';
@@ -85,4 +85,13 @@ abstract class JobApplicationApiService {
     @Path("id") int id,
     @Body() AddReviewNotesRequest request,
   );
+
+  /// Get paginated applied jobs for a user
+@GET("/api/applied-jobs/user/{userId}")
+Future<PaginatedApplicationsResponse> getAppliedJobsPaginated(
+  @Path("userId") int userId,
+  @Query("page") int page,
+  @Query("limit") int limit,
+);
+
 }

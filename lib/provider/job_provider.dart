@@ -121,13 +121,7 @@ class JobProvider extends ChangeNotifier {
   JobProvider() {
     _loadUserDataAndFetchJobs();
 
-    // Add listeners to update filters when text changes
-    designationController.addListener(() {
-      _applyFilters();
-    });
-    locationController.addListener(() {
-      _applyFilters();
-    });
+  
   }
 
   /// Load user data from storage and fetch jobs

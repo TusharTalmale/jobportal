@@ -36,9 +36,6 @@ class _JobListingScreenState extends State<JobListingScreen> {
         child: Consumer<JobProvider>(
           builder: (context, jobProvider, child) {
             // Show loading state
-            if (jobProvider.isLoading && jobProvider.filteredJobs.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
 
             // Show error state
             if (jobProvider.errorMessage != null &&
@@ -76,7 +73,12 @@ class _JobListingScreenState extends State<JobListingScreen> {
                 const SizedBox(height: 15),
                 Expanded(
                   child:
-                      jobProvider.filteredJobs.isEmpty
+                      (jobProvider.filteredJobs.isEmpty &&
+                              jobProvider.isLoading)
+                          ? const Expanded(
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                          : jobProvider.filteredJobs.isEmpty
                           ? const EmptyStateWidget()
                           : Column(
                             children: [
@@ -109,86 +111,108 @@ class _JobListingScreenState extends State<JobListingScreen> {
     );
   }
 
-  // ---------------- HEADER WIDGET ----------------
-  Widget _header(BuildContext context, JobProvider jobProvider) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xff2e236c), Color(0xff3e2ea0)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+Widget _header(BuildContext context, JobProvider jobProvider) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xff2e236c), Color(0xff3e2ea0)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(30),
+        bottomRight: Radius.circular(30),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+
+        const SizedBox(height: 15),
+
+        // --- Job Title Field ---
+        _searchField(
+          hint: "Job title, role…",
+          icon: Icons.search,
+          controller: jobProvider.designationController,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // back button
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-          ),
 
-          const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
-          // Search field
-          _searchField(
-            hint: "Design",
-            icon: Icons.search,
-            controller: jobProvider.designationController,
-          ),
-
-          const SizedBox(height: 15),
-
-          // Location field
-          _searchField(
-            hint: "California, USA",
-            icon: Icons.location_on_outlined,
-            controller: jobProvider.locationController,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------- SEARCH FIELD WIDGET ----------
-  Widget _searchField({
-    required String hint,
-    required IconData icon,
-    required TextEditingController controller,
-  }) {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey.shade700),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                border: InputBorder.none,
+        // --- Location Field + Search Button ---
+        Row(
+          children: [
+            Expanded(
+              child: _searchField(
+                hint: "Location",
+                icon: Icons.location_on_outlined,
+                controller: jobProvider.locationController,
               ),
             ),
+
+            const SizedBox(width: 12),
+
+            // 🔥 SEARCH BUTTON
+            Container(
+              height: 50,
+              width: 55,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.search, color: Colors.black),
+                onPressed: () {
+                  Provider.of<JobProvider>(context, listen: false)
+                      .loadFirstPage();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _searchField({
+  required String hint,
+  required IconData icon,
+  required TextEditingController controller,
+}) {
+  return Container(
+    height: 50,
+    padding: const EdgeInsets.symmetric(horizontal: 15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: Colors.grey.shade700, size: 22),
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey.shade500),
+              border: InputBorder.none,
+            ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   // -------- FILTER ROW ----------
   Widget _filterRow(BuildContext context, JobProvider jobProvider) {

@@ -55,10 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 8),
                     const Text(
                       'Sign in to your account to continue your journey',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
                     ),
                     const SizedBox(height: 40),
 
@@ -68,7 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: authViewModel.loginEmailController,
                       validator: authViewModel.validateEmail,
                       keyboardType: TextInputType.emailAddress,
-                      enabled: !authViewModel.loginOtpSent &&
+                      enabled:
+                          !authViewModel.loginOtpSent &&
                           !authViewModel.isSendingOtp,
                       prefixIcon: Icons.email_outlined,
                       hint: 'enter@example.com',
@@ -112,8 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          onChanged:
-                              authViewModel.toggleRememberMeLogin,
+                          onChanged: authViewModel.toggleRememberMeLogin,
                         ),
                         const Text(
                           'Remember me',
@@ -166,8 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (authViewModel.errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 20.0),
-                        child: _buildErrorWidget(
-                            authViewModel.errorMessage!),
+                        child: _buildErrorWidget(authViewModel.errorMessage!),
                       ),
 
                     // Success Message
@@ -175,7 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 20.0),
                         child: _buildSuccessWidget(
-                            authViewModel.successMessage!),
+                          authViewModel.successMessage!,
+                        ),
                       ),
                   ],
                 ),
@@ -187,8 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildGetOtpButton(
-      BuildContext context, AuthViewModel authViewModel) {
+  Widget _buildGetOtpButton(BuildContext context, AuthViewModel authViewModel) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -200,68 +196,73 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 2,
         ),
-        onPressed: authViewModel.isSendingOtp
-            ? null
-            : () => authViewModel.sendLoginOtp(),
-        icon: authViewModel.isSendingOtp
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
-                ),
-              )
-            : const Icon(Icons.mail_outline, size: 20),
+        onPressed:
+            authViewModel.isSendingOtp
+                ? null
+                : () => authViewModel.sendLoginOtp(),
+        icon:
+            authViewModel.isSendingOtp
+                ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                )
+                : const Icon(Icons.mail_outline, size: 20),
         label: Text(
           authViewModel.isSendingOtp ? 'Sending OTP...' : 'Get OTP',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
   Widget _buildOtpResendSection(
-      BuildContext context, AuthViewModel authViewModel) {
+    BuildContext context,
+    AuthViewModel authViewModel,
+  ) {
     return Center(
-      child: authViewModel.isOtpTimerActive
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade300),
-              ),
-              child: Text(
-                'Resend OTP in ${authViewModel.otpResendSeconds}s',
-                style: TextStyle(
-                  color: Colors.orange.shade700,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+      child:
+          authViewModel.isOtpTimerActive
+              ? Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Text(
+                  'Resend OTP in ${authViewModel.otpResendSeconds}s',
+                  style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              )
+              : TextButton(
+                onPressed:
+                    authViewModel.isSendingOtp
+                        ? null
+                        : () => authViewModel.sendLoginOtp(),
+                child: const Text(
+                  'Didn\'t receive OTP? Resend',
+                  style: TextStyle(
+                    color: Color(0xFF13005A),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            )
-          : TextButton(
-              onPressed: authViewModel.isSendingOtp
-                  ? null
-                  : () => authViewModel.sendLoginOtp(),
-              child: const Text(
-                'Didn\'t receive OTP? Resend',
-                style: TextStyle(
-                  color: Color(0xFF13005A),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
     );
   }
 
-  Widget _buildLoginButton(
-      BuildContext context, AuthViewModel authViewModel) {
+  Widget _buildLoginButton(BuildContext context, AuthViewModel authViewModel) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -273,32 +274,33 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 2,
         ),
-        onPressed: authViewModel.isLoading
-            ? null
-            : () async {
-                final success =
-                    await authViewModel.loginWithOtp(context);
-                if (success && context.mounted) {
-                  Navigator.pushReplacementNamed(context, '/main');
-                }
-              },
-        child: authViewModel.isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
+        onPressed:
+            authViewModel.isLoading
+                ? null
+                : () async {
+                  final success = await authViewModel.loginWithOtp(context);
+                  if (success && context.mounted) {
+                    Navigator.pushReplacementNamed(context, '/main');
+                  }
+                },
+        child:
+            authViewModel.isLoading
+                ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                )
+                : const Text(
+                  'LOGIN',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              )
-            : const Text(
-                'LOGIN',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              ),
       ),
     );
   }
@@ -316,17 +318,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         },
-        icon: Image.asset(
-          'assets/icons/google.png',
-          height: 24,
-          width: 24,
-        ),
+        icon: Image.asset('assets/icons/google.png', height: 24, width: 24),
         label: const Text(
           'CONTINUE WITH GOOGLE',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         style: OutlinedButton.styleFrom(
           backgroundColor: const Color(0xFFECEAFF),
@@ -351,11 +346,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red.shade600,
-            size: 22,
-          ),
+          Icon(Icons.error_outline, color: Colors.red.shade600, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

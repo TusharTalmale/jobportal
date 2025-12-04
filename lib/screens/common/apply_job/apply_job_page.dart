@@ -63,10 +63,7 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
 
   void _initializeProvider() {
     final provider = context.read<JobApplicationProvider>();
-    if (provider.currentUserId == null) {
-      // Set current user if not already set
-      provider.setCurrentUser(1, 'user'); // In real app, get from auth
-    }
+ 
   }
 
   Future<void> _pickResumeFile() async {
@@ -118,61 +115,61 @@ class _ApplyJobPageState extends State<ApplyJobPage> {
     });
   }
 
+ 
   Future<void> _submitApplication() async {
-    if (_uploadedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please upload your CV/Resume'),
-          backgroundColor: Colors.red,
+  if (_uploadedFile == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please upload your CV/Resume'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isApplying = true);
+
+  try {
+    final provider = context.read<JobApplicationProvider>();
+
+    final applied = await provider.applyForJob(
+      jobId: widget.job.id,
+      resumePaths: [_uploadedFile!.filePath],
+    );
+
+    if (applied && mounted) {
+      final lastApplication = provider.applications.first;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ApplySuccessfulPage(
+            job: widget.job,
+            file: _uploadedFile!,
+            jobApplication: lastApplication,
+          ),
         ),
       );
-      return;
-    }
-
-    setState(() => _isApplying = true);
-
-    try {
-      final provider = context.read<JobApplicationProvider>();
-
-      final response = await provider.createApplication(
-        jobId: widget.job.id,
-        userId: provider.currentUserId ?? 1,
-        resumeFilePaths: [_uploadedFile!.filePath],
-      );
-
-      if (response != null && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder:
-                (context) => ApplySuccessfulPage(
-                  job: widget.job,
-                  file: _uploadedFile!,
-                  jobApplication: response.application,
-                ),
-          ),
-        );
-      } else if (mounted) {
+    } else {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              provider.errorMessage ?? 'Failed to submit application',
-            ),
+          const SnackBar(
+            content: Text('Failed to apply'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isApplying = false);
-      }
     }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isApplying = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

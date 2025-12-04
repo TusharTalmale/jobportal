@@ -74,7 +74,9 @@ class NetworkProvider with ChangeNotifier {
   // -----------------------------
   // Fetch Feed Posts
   // -----------------------------
+ 
   Future<void> fetchPosts({bool isRefresh = false}) async {
+
     if (isRefresh) {
       _currentPage = 1;
       _posts.clear();
